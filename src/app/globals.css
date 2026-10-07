@@ -1,26 +1,137 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
+@layer base {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --color-cream: #FDF6F4;
+    --color-blush: #F9EEF1;
+    --color-rose: #D4A0B0;
+    --color-rose-light: #F4E2E7;
+    --color-rose-dark: #BA788C;
+    --color-plum: #7A4F5C;
+    --color-deep-plum: #5C3544;
+    --color-dark: #1A0E14;
+    --color-muted: #7E636E;
+    --color-gold: #C59B6D;
   }
 }
 
+html {
+  scroll-behavior: smooth;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: #FDF6F4;
+  color: #1A0E14;
+  overflow-x: hidden;
+}
+
+/* Sliding Ribbon Animation */
+@keyframes ribbonSlide {
+  0% {
+    transform: translate3d(0, 0, 0);
+  }
+  100% {
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+
+.ribbon-track {
+  display: flex !important;
+  width: max-content !important;
+  animation: ribbonSlide 28s linear infinite !important;
+  will-change: transform;
+}
+
+.ribbon-track:hover {
+  animation-play-state: paused !important;
+}
+
+.ribbon-track-fast {
+  display: flex !important;
+  width: max-content !important;
+  animation: ribbonSlide 20s linear infinite !important;
+  will-change: transform;
+}
+
+.ribbon-track-fast:hover {
+  animation-play-state: paused !important;
+}
+
+/* Radiant Glowing Aura Effect */
+@keyframes auraPulse {
+  0%, 100% {
+    transform: scale(1) translate(0, 0);
+    opacity: 0.45;
+  }
+  50% {
+    transform: scale(1.08) translate(10px, -8px);
+    opacity: 0.7;
+  }
+}
+
+.glow-aura {
+  animation: auraPulse 7s ease-in-out infinite;
+}
+
+/* Floating animation */
+@keyframes floatGentle {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+.animate-float {
+  animation: floatGentle 5s ease-in-out infinite;
+}
+
+/* Shimmer Light Reflection */
+@keyframes shimmerPass {
+  0% {
+    transform: translateX(-150%) skewX(-20deg);
+  }
+  50%, 100% {
+    transform: translateX(200%) skewX(-20deg);
+  }
+}
+
+.shimmer-badge {
+  position: relative;
+  overflow: hidden;
+}
+
+.shimmer-badge::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 50%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.45),
+    transparent
+  );
+  animation: shimmerPass 4s ease-in-out infinite;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #FDF6F4;
+}
+::-webkit-scrollbar-thumb {
+  background: #D4A0B0;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #7A4F5C;
 }
