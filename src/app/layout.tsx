@@ -3,6 +3,7 @@ import { Cormorant_Garamond, DM_Sans } from "next/font/google";
 import "./globals.css";
 import { CartProvider } from "@/context/CartContext";
 import { WishlistProvider } from "@/context/WishlistContext";
+import { AuthProvider } from "@/context/AuthContext";
 import CartDrawer from "@/components/CartDrawer";
 import Toast from "@/components/Toast";
 
@@ -56,13 +57,15 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${cormorant.variable} ${dmSans.variable} scroll-smooth`}>
       <body className="font-sans min-h-screen flex flex-col bg-[#FDF6F4] text-[#1A0E14] antialiased selection:bg-[#D4A0B0] selection:text-white">
-        <CartProvider>
-          <WishlistProvider>
-            <main className="flex-grow">{children}</main>
-            <CartDrawer />
-            <Toast />
-          </WishlistProvider>
-        </CartProvider>
+        <AuthProvider>
+          <CartProvider>
+            <WishlistProvider>
+              <main className="flex-grow">{children}</main>
+              <CartDrawer />
+              <Toast />
+            </WishlistProvider>
+          </CartProvider>
+        </AuthProvider>
       </body>
     </html>
   );

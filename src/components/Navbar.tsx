@@ -2,9 +2,10 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { Search, ShoppingBag, Heart, Menu, X, Sparkles, MessageCircle, ArrowRight } from "lucide-react";
+import { Search, ShoppingBag, Heart, Menu, X, Sparkles, MessageCircle, ArrowRight, User } from "lucide-react";
 import { useCart } from "@/context/CartContext";
 import { useWishlist } from "@/context/WishlistContext";
+import { useAuth } from "@/context/AuthContext";
 import SearchModal from "./SearchModal";
 import { ShopifyProduct } from "@/lib/shopify";
 
@@ -15,6 +16,7 @@ interface NavbarProps {
 export default function Navbar({ products }: NavbarProps) {
   const { openCart, totalItems, subtotal } = useCart();
   const { totalWishlist } = useWishlist();
+  const { user, isAuthenticated } = useAuth();
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -119,6 +121,22 @@ export default function Navbar({ products }: NavbarProps) {
               >
                 <Search className="w-4 h-4" />
               </button>
+
+              {/* Customer Account / Demo Login */}
+              <Link
+                href={isAuthenticated ? "/account" : "/login"}
+                className="flex items-center justify-center w-8 h-8 rounded-full text-[#5C3544] hover:bg-[#F9EEF1] transition-colors"
+                aria-label="Customer Account"
+                title={isAuthenticated ? `Account (${user?.firstName})` : "Sign In / Demo Login"}
+              >
+                {isAuthenticated && user ? (
+                  <span className="w-6 h-6 rounded-full bg-[#5C3544] text-white text-[9.5px] font-bold flex items-center justify-center shadow-xs">
+                    {user.firstName[0]}
+                  </span>
+                ) : (
+                  <User className="w-4 h-4" />
+                )}
+              </Link>
 
               {/* Wishlist Button */}
               <a
