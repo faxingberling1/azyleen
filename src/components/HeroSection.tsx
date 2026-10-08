@@ -2,6 +2,7 @@
 
 import React from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { Sparkles, ArrowRight, ShieldCheck, Star, CheckCircle2, Heart } from "lucide-react";
 import { ShopifyProduct } from "@/lib/shopify";
 import { useCart } from "@/context/CartContext";
@@ -14,10 +15,25 @@ export default function HeroSection({ heroProduct }: HeroSectionProps) {
   const { addToCart } = useCart();
 
   return (
-    <section className="relative overflow-hidden pt-10 pb-16 lg:pt-16 lg:pb-24 bg-gradient-to-b from-[#FDF6F4] via-[#F9EEF1]/70 to-[#FDF6F4]">
+    <section className="relative overflow-hidden pt-10 pb-16 lg:pt-16 lg:pb-24 bg-[#FDF6F4]">
+      {/* Abstract Beauty Background Image */}
+      <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden select-none">
+        <Image
+          src="/images/hero-abstract-bg.jpg"
+          alt="Azyleen Korean Skincare Abstract Beauty Background"
+          fill
+          priority
+          quality={90}
+          className="object-cover object-center opacity-40 mix-blend-multiply scale-105"
+        />
+        {/* Soft elegant gradient overlays for text readability and seamless edge blending */}
+        <div className="absolute inset-0 bg-gradient-to-r from-[#FDF6F4]/92 via-[#FDF6F4]/75 to-[#FDF6F4]/60" />
+        <div className="absolute inset-0 bg-gradient-to-b from-[#FDF6F4]/60 via-transparent to-[#FDF6F4]" />
+      </div>
+
       {/* Decorative ambient glowing orbs */}
-      <div className="absolute top-12 left-10 w-96 h-96 bg-[#D4A0B0]/25 rounded-full blur-3xl glow-aura pointer-events-none" />
-      <div className="absolute bottom-12 right-12 w-[500px] h-[500px] bg-[#C59B6D]/15 rounded-full blur-3xl glow-aura pointer-events-none" />
+      <div className="absolute top-12 left-10 w-96 h-96 bg-[#D4A0B0]/20 rounded-full blur-3xl glow-aura pointer-events-none z-0" />
+      <div className="absolute bottom-12 right-12 w-[500px] h-[500px] bg-[#C59B6D]/15 rounded-full blur-3xl glow-aura pointer-events-none z-0" />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-10 items-center">
@@ -134,23 +150,37 @@ export default function HeroSection({ heroProduct }: HeroSectionProps) {
 
               {/* Card 2: Authentic Product Bottle Showcase */}
               <div className="col-span-5 relative flex flex-col gap-3">
-                <div className="relative aspect-square rounded-[28px] overflow-hidden bg-white p-4 shadow-xl border border-[#D4A0B0]/30 flex items-center justify-center group">
-                  {heroProduct?.images?.[0]?.url ? (
-                    <Image
-                      src={heroProduct.images[0].url}
-                      alt={heroProduct.title}
-                      fill
-                      className="object-contain p-3 group-hover:scale-110 transition-transform duration-500"
-                      sizes="(max-width: 768px) 40vw, 250px"
-                    />
-                  ) : (
-                    <div className="text-center font-serif text-xl text-[#5C3544]">Azyleen</div>
-                  )}
+                {heroProduct ? (
+                  <Link
+                    href={`/products/${heroProduct.handle}`}
+                    className="relative aspect-square rounded-[28px] overflow-hidden bg-white p-4 shadow-xl border border-[#D4A0B0]/30 flex items-center justify-center group cursor-pointer block"
+                    title={`View ${heroProduct.title}`}
+                  >
+                    {heroProduct.images?.[0]?.url || heroProduct.handle?.includes("anua-peach") ? (
+                      <Image
+                        src={
+                          heroProduct.handle?.includes("anua-peach")
+                            ? "/images/transparent/anua-peach-user.png"
+                            : heroProduct.images[0].url
+                        }
+                        alt={heroProduct.title}
+                        fill
+                        className="object-contain p-2 group-hover:scale-108 transition-transform duration-500 drop-shadow-sm"
+                        sizes="(max-width: 768px) 40vw, 250px"
+                      />
+                    ) : (
+                      <div className="text-center font-serif text-xl text-[#5C3544]">Azyleen</div>
+                    )}
 
-                  <div className="absolute top-2.5 right-2.5 bg-[#5C3544] text-[#FDF6F4] px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider shadow-xs">
-                    ★ #1 Bestseller
+                    <div className="absolute top-2.5 right-2.5 bg-[#5C3544] text-[#FDF6F4] px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider shadow-xs">
+                      ★ #1 Bestseller
+                    </div>
+                  </Link>
+                ) : (
+                  <div className="relative aspect-square rounded-[28px] overflow-hidden bg-white p-4 shadow-xl border border-[#D4A0B0]/30 flex items-center justify-center">
+                    <div className="text-center font-serif text-xl text-[#5C3544]">Azyleen</div>
                   </div>
-                </div>
+                )}
 
                 {/* Floating Product Action Card */}
                 {heroProduct && (
@@ -159,9 +189,13 @@ export default function HeroSection({ heroProduct }: HeroSectionProps) {
                       <span className="text-[9.5px] font-bold uppercase tracking-wider text-[#BA788C] block">
                         {heroProduct.vendor}
                       </span>
-                      <h4 className="text-xs font-semibold text-[#1A0E14] line-clamp-1">
+                      <Link
+                        href={`/products/${heroProduct.handle}`}
+                        className="text-xs font-semibold text-[#1A0E14] hover:text-[#BA788C] transition-colors line-clamp-1 block cursor-pointer"
+                        title="Read product detail"
+                      >
                         {heroProduct.title}
-                      </h4>
+                      </Link>
                       <div className="flex items-center gap-1.5 mt-0.5">
                         <span className="text-sm font-bold text-[#5C3544]">
                           Rs. {heroProduct.price.toLocaleString()}

@@ -1,10 +1,11 @@
 "use client";
 
 import React from "react";
-import { Sparkles, Truck, ShieldCheck, Smartphone, RotateCcw } from "lucide-react";
+import { Sparkles, Truck, ShieldCheck, Smartphone, RotateCcw, Gift } from "lucide-react";
 
 export default function AnnouncementBar() {
   const announcements = [
+    { text: "The Gift of Glass Skin: Digital & Keepsake Gift Vouchers Now Live", icon: Gift },
     { text: "Free shipping across Pakistan on orders above Rs 3,999", icon: Truck },
     { text: "100% Guaranteed Authentic Korean Skincare", icon: ShieldCheck },
     { text: "Cash on Delivery (COD) · EasyPaisa · JazzCash Available", icon: Smartphone },
@@ -23,7 +24,7 @@ export default function AnnouncementBar() {
           display: inline-flex !important;
           width: max-content !important;
           white-space: nowrap !important;
-          animation: annSlide 22s linear infinite !important;
+          animation: annSlide 55s linear infinite !important;
           will-change: transform;
         }
         .ann-marquee-track:hover {

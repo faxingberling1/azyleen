@@ -39,7 +39,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Azyleen — Authentic Korean Skincare Pakistan",
     description: "Your skin, softly transformed. Direct from Seoul, curated for South Asian skin.",
-    url: "https://azyleen.com",
+    url: "https://azyleen-demo.myshopify.com",
     siteName: "Azyleen",
     locale: "en_PK",
     type: "website",

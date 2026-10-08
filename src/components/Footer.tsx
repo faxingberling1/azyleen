@@ -82,12 +82,13 @@ export default function Footer() {
               Shop Categories
             </h4>
             <ul className="space-y-2.5 text-xs text-[#FDF6F4]/70">
-              <li><a href="#products" className="hover:text-white transition-colors">Bestsellers</a></li>
-              <li><a href="#products" className="hover:text-white transition-colors">Korean Serums</a></li>
-              <li><a href="#products" className="hover:text-white transition-colors">Barrier Creams</a></li>
-              <li><a href="#products" className="hover:text-white transition-colors">Sunscreen &amp; SPF 50+</a></li>
-              <li><a href="#products" className="hover:text-white transition-colors">Eye Care &amp; Retinal</a></li>
-              <li><a href="#routine" className="hover:text-white transition-colors">4-Step Glass Routine</a></li>
+              <li><Link href="/bestsellers" className="hover:text-white transition-colors">Bestsellers</Link></li>
+              <li><Link href="/serums" className="hover:text-white transition-colors">Korean Serums</Link></li>
+              <li><Link href="/moisturisers" className="hover:text-white transition-colors">Barrier Creams</Link></li>
+              <li><Link href="/sunscreen" className="hover:text-white transition-colors">Sunscreen &amp; SPF 50+</Link></li>
+              <li><Link href="/ritual" className="hover:text-white transition-colors">4-Step Glass Routine</Link></li>
+              <li><Link href="/gift-vouchers" className="hover:text-[#D4A0B0] font-semibold transition-colors flex items-center gap-1.5"><span>Gift Vouchers</span><span className="text-[9px] bg-[#BA788C] text-white px-1.5 py-0.5 rounded-full uppercase">Luxe</span></Link></li>
+              <li><Link href="/our-story" className="hover:text-white transition-colors">Our Story</Link></li>
             </ul>
           </div>
 
@@ -97,10 +98,10 @@ export default function Footer() {
               Customer Care
             </h4>
             <ul className="space-y-2.5 text-xs text-[#FDF6F4]/70">
-              <li><a href="#routine" className="hover:text-white transition-colors">Free Routine Consultation</a></li>
-              <li><a href="#products" className="hover:text-white transition-colors">Cash on Delivery (COD)</a></li>
-              <li><a href="#reviews" className="hover:text-white transition-colors">Customer Reviews</a></li>
-              <li><a href="https://wa.me/923252867992" className="hover:text-white transition-colors">Track Order via WhatsApp</a></li>
+              <li><Link href="/support" className="hover:text-white transition-colors">VIP Concierge &amp; Support</Link></li>
+              <li><Link href="/support" className="hover:text-white transition-colors">Track Order Live</Link></li>
+              <li><Link href="/support" className="hover:text-white transition-colors">Free Routine Consultation</Link></li>
+              <li><a href="https://wa.me/923252867992" target="_blank" rel="noreferrer" className="hover:text-white transition-colors">WhatsApp Concierge</a></li>
               <li><span className="text-[#FDF6F4]/50">7-Day Hassle-Free Returns</span></li>
             </ul>
           </div>

@@ -5,7 +5,8 @@ import HeroSection from "@/components/HeroSection";
 import MarqueeTicker from "@/components/MarqueeTicker";
 import TrustBadges from "@/components/TrustBadges";
 import FlashSaleBanner from "@/components/FlashSaleBanner";
-import ProductGrid from "@/components/ProductGrid";
+import ProductSpotlight from "@/components/ProductSpotlight";
+import CategoryShowcase from "@/components/CategoryShowcase";
 import GlassSkinRoutine from "@/components/GlassSkinRoutine";
 import SkinConcernGrid from "@/components/SkinConcernGrid";
 import BrandStory from "@/components/BrandStory";
@@ -21,7 +22,7 @@ export default async function HomePage() {
 
   // Select hero product: Anua Peach or Anua Niacinamide or first available
   const heroProduct =
-    products.find((p) => p.handle.includes("anua-peach-70") || p.handle.includes("anua-niacinamide")) ||
+    products.find((p) => p.handle.includes("anua-peach") || p.handle.includes("anua-niacinamide") || p.handle.includes("axis-y")) ||
     products[0];
 
   return (
@@ -46,8 +47,11 @@ export default async function HomePage() {
         {/* Flash Glow Sale Ticker */}
         <FlashSaleBanner />
 
-        {/* Curated Product Showcase */}
-        <ProductGrid products={products} />
+        {/* Product Spotlight: 1 of 4 with Automated Sliding & Spotlight Beam */}
+        <ProductSpotlight products={products} />
+
+        {/* Curated Product Category Discovery Gateways */}
+        <CategoryShowcase />
 
         {/* Interactive 4-Step Glass Skin Routine */}
         <GlassSkinRoutine products={products} />

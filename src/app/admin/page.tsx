@@ -83,17 +83,26 @@ export default function DemoAdminPage() {
   ]);
 
   useEffect(() => {
-    fetch("https://azyleen.com/products.json")
+    fetch("https://qdza9d-gk.myshopify.com/api/2024-01/graphql.json", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Shopify-Storefront-Access-Token": "4954dfe736d1eb015a46e5166cde5136",
+      },
+      body: JSON.stringify({
+        query: "{ products(first: 25) { edges { node { id title handle vendor priceRange { minVariantPrice { amount } } images(first: 1) { edges { node { url } } } } } } }",
+      }),
+    })
       .then((res) => res.json())
       .then((data) => {
-        if (data.products) {
-          const mapped = data.products.map((p: any) => ({
-            id: String(p.id),
-            title: p.title,
-            handle: p.handle,
-            vendor: p.vendor || "Azyleen",
-            price: p.variants?.[0]?.price ? parseFloat(p.variants[0].price) : 3499,
-            image: p.images?.[0]?.src || "",
+        if (data.data?.products?.edges) {
+          const mapped = data.data.products.edges.map(({ node }: any) => ({
+            id: String(node.id),
+            title: node.title,
+            handle: node.handle,
+            vendor: node.vendor || "Azyleen",
+            price: parseFloat(node.priceRange?.minVariantPrice?.amount) || 3499,
+            image: node.images?.edges?.[0]?.node?.url || "",
             status: "Active",
           }));
           setProducts(mapped);
@@ -515,7 +524,7 @@ export default function DemoAdminPage() {
                   <div className="font-mono text-xs font-bold text-emerald-600">
                     Active &amp; Redirecting
                   </div>
-                  <p className="text-[11px] text-gray-500">Generates instant checkout sessions on azyleen.com</p>
+                  <p className="text-[11px] text-gray-500">Generates instant checkout sessions on Shopify demo store</p>
                 </div>
               </div>
 

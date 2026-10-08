@@ -12,6 +12,10 @@ const nextConfig: NextConfig = {
       },
       {
         protocol: "https",
+        hostname: "azyleen-demo.myshopify.com",
+      },
+      {
+        protocol: "https",
         hostname: "azyleen.com",
       },
     ],
@@ -23,6 +27,30 @@ const nextConfig: NextConfig = {
         as: "*.css",
       },
     },
+  },
+  async redirects() {
+    return [
+      {
+        source: "/products/gift-card",
+        destination: "/gift-vouchers",
+        permanent: false,
+      },
+      {
+        source: "/products/gift-cards",
+        destination: "/gift-vouchers",
+        permanent: false,
+      },
+      {
+        source: "/products/gift-voucher",
+        destination: "/gift-vouchers",
+        permanent: false,
+      },
+      {
+        source: "/products/gift-vouchers",
+        destination: "/gift-vouchers",
+        permanent: false,
+      },
+    ];
   },
 };
 

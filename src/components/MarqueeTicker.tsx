@@ -23,7 +23,7 @@ export default function MarqueeTicker() {
           display: inline-flex !important;
           width: max-content !important;
           white-space: nowrap !important;
-          animation: ribbonMarqueeSlide 30s linear infinite !important;
+          animation: ribbonMarqueeSlide 70s linear infinite !important;
           will-change: transform;
         }
         .ribbon-marquee-track:hover {

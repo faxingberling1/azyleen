@@ -1,5 +1,5 @@
 import React from "react";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import type { Metadata } from "next";
 import AnnouncementBar from "@/components/AnnouncementBar";
 import Navbar from "@/components/Navbar";
@@ -16,13 +16,22 @@ interface PageProps {
 
 export async function generateStaticParams() {
   const products = await getShopifyProducts();
-  return products.map((p) => ({
-    handle: p.handle,
-  }));
+  return products
+    .filter((p) => Boolean(p.handle) && !p.handle.includes("gift-card") && !p.handle.includes("gift-voucher"))
+    .map((p) => ({
+      handle: p.handle,
+    }));
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { handle } = await params;
+
+  if (!handle) {
+    return {
+      title: "Product Not Found — Azyleen",
+    };
+  }
+
   const product = await getShopifyProductByHandle(handle);
 
   if (!product) {
@@ -46,6 +55,21 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 export default async function ProductPage({ params }: PageProps) {
   const { handle } = await params;
+
+  if (!handle) {
+    notFound();
+  }
+
+  // Gift vouchers & keepsake gift boxes must be configured inside the dedicated Gifting Studio
+  if (
+    handle === "gift-card" ||
+    handle === "gift-voucher" ||
+    handle.toLowerCase().includes("gift-card") ||
+    handle.toLowerCase().includes("gift-voucher")
+  ) {
+    redirect("/gift-vouchers");
+  }
+
   const [product, allProducts] = await Promise.all([
     getShopifyProductByHandle(handle),
     getShopifyProducts(),
@@ -71,7 +95,7 @@ export default async function ProductPage({ params }: PageProps) {
     },
     offers: {
       "@type": "Offer",
-      url: `https://azyleen.com/products/${product.handle}`,
+      url: `https://azyleen-demo.myshopify.com/products/${product.handle}`,
       priceCurrency: "PKR",
       price: product.price,
       availability: "https://schema.org/InStock",

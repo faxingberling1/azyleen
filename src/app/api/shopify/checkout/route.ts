@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const SHOPIFY_DOMAIN = process.env.SHOPIFY_STORE_DOMAIN || "qdza9d-gk.myshopify.com";
-const SHOPIFY_TOKEN = process.env.SHOPIFY_STOREFRONT_ACCESS_TOKEN || "4954dfe736d1eb015a46e5166cde5136";
+const SHOPIFY_DOMAIN = process.env.SHOPIFY_STORE_DOMAIN || "azyleen-demo.myshopify.com";
+const SHOPIFY_TOKEN = process.env.SHOPIFY_STOREFRONT_ACCESS_TOKEN || "20ba6c587e0f238d2ebcac98d55418de";
 const GRAPHQL_URL = `https://${SHOPIFY_DOMAIN}/api/2024-01/graphql.json`;
 
 export async function POST(req: NextRequest) {
@@ -72,8 +72,13 @@ export async function POST(req: NextRequest) {
     const errors = data.data?.cartCreate?.userErrors;
 
     if (cart?.checkoutUrl) {
+      let finalCheckoutUrl = cart.checkoutUrl;
+      // Guarantee no redirection to azyleen.com
+      if (finalCheckoutUrl.includes("azyleen.com")) {
+        finalCheckoutUrl = finalCheckoutUrl.replace("https://azyleen.com", "https://azyleen-demo.myshopify.com");
+      }
       return NextResponse.json({
-        checkoutUrl: cart.checkoutUrl,
+        checkoutUrl: finalCheckoutUrl,
         cartId: cart.id,
       });
     }
@@ -82,21 +87,23 @@ export async function POST(req: NextRequest) {
       console.warn("Shopify cart errors:", errors);
     }
 
-    // Fallback: Shopify Permalink URL
+    // Fallback: Shopify Permalink URL (Direct to azyleen-demo.myshopify.com)
+    const fallbackDomain = process.env.NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN || "azyleen-demo.myshopify.com";
     const permalinkParts = items.map((i: any) => {
       const vId = String(i.selectedVariantId || i.product?.variants?.[0]?.id || "").replace(/\D/g, "");
       return `${vId}:${i.quantity || 1}`;
     }).filter((p: string) => !p.startsWith(":"));
 
     const fallbackUrl = permalinkParts.length > 0
-      ? `https://${SHOPIFY_DOMAIN}/cart/${permalinkParts.join(",")}`
-      : `https://${SHOPIFY_DOMAIN}/cart`;
+      ? `https://${fallbackDomain}/cart/${permalinkParts.join(",")}`
+      : `https://${fallbackDomain}/cart`;
 
     return NextResponse.json({ checkoutUrl: fallbackUrl });
   } catch (error: any) {
     console.error("Shopify checkout route error:", error);
+    const fallbackDomain = process.env.NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN || "azyleen-demo.myshopify.com";
     return NextResponse.json(
-      { error: "Failed to initiate checkout", checkoutUrl: `https://${SHOPIFY_DOMAIN}/cart` },
+      { error: "Failed to initiate checkout", checkoutUrl: `https://${fallbackDomain}/cart` },
       { status: 500 }
     );
   }

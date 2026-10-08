@@ -51,8 +51,8 @@ export interface ShopifyCollection {
   image?: ShopifyImage | null;
 }
 
-const SHOPIFY_DOMAIN = process.env.NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN || "qdza9d-gk.myshopify.com";
-const SHOPIFY_STOREFRONT_TOKEN = process.env.NEXT_PUBLIC_SHOPIFY_STOREFRONT_ACCESS_TOKEN || "4954dfe736d1eb015a46e5166cde5136";
+const SHOPIFY_DOMAIN = process.env.NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN || "azyleen-demo.myshopify.com";
+const SHOPIFY_STOREFRONT_TOKEN = process.env.NEXT_PUBLIC_SHOPIFY_STOREFRONT_ACCESS_TOKEN || "20ba6c587e0f238d2ebcac98d55418de";
 const GRAPHQL_ENDPOINT = `https://${SHOPIFY_DOMAIN}/api/2024-01/graphql.json`;
 
 // Curated realistic metadata mapping for Azyleen products to enhance UI
@@ -68,7 +68,7 @@ const PRODUCT_METADATA_MAP: Record<
     benefits: string[];
     howToUse: string;
     salePrice?: number;
-    originalPrice?: number;
+    originalPrice?: number | null;
   }
 > = {
   "anua-niacinamide-serum": {
@@ -299,6 +299,22 @@ const PRODUCT_METADATA_MAP: Record<
     benefits: ["7% Glycolic Acid exfoliating toner", "Boosts skin radiance and clears congested pores", "Noticeably smooths textured skin"],
     howToUse: "Sweep with cotton pad over face in the evening (avoid eye area). Always wear SPF next day.",
   },
+  "gift-card": {
+    brand: "Azyleen",
+    concern: "Bespoke Skincare Gifting",
+    category: "gift-vouchers",
+    rating: 5.0,
+    reviewsCount: 38,
+    viewingNow: 22,
+    salePrice: 2500,
+    originalPrice: null,
+    benefits: [
+      "Redeemable across all authentic Korean skincare formulations",
+      "Signature blush keepsake box with satin plum ribbon or instant digital code",
+      "Valid for 12 months with complimentary personalized handwritten card"
+    ],
+    howToUse: "Enter unique gift code during online checkout or present keepsake card.",
+  },
 };
 
 export async function fetchShopifyGraphQL<T>(query: string, variables = {}): Promise<T | null> {
@@ -331,10 +347,46 @@ export async function fetchShopifyGraphQL<T>(query: string, variables = {}): Pro
   }
 }
 
+function inferBrand(title: string, vendor: string): string {
+  const t = title.toLowerCase();
+  if (t.includes("gift") || t.includes("voucher") || t.includes("card")) return "Azyleen";
+  if (vendor && vendor.toLowerCase().includes("snowboard")) return "Azyleen";
+  if (vendor && vendor !== "Azyleen" && vendor !== "Default") return vendor;
+  if (t.includes("anua")) return "Anua";
+  if (t.includes("axis-y") || t.includes("axis y")) return "AXIS-Y";
+  if (t.includes("cosrx")) return "COSRX";
+  if (t.includes("skin1004") || t.includes("centella")) return "Skin1004";
+  if (t.includes("dr althea") || t.includes("dr. althea")) return "Dr. Althea";
+  if (t.includes("celimax") || t.includes("celimex")) return "Celimax";
+  if (t.includes("mixsoon")) return "Mixsoon";
+  if (t.includes("some by mi")) return "SOME BY MI";
+  if (t.includes("ordinary")) return "The Ordinary";
+  if (t.includes("medicube")) return "Medicube";
+  if (t.includes("seoul 1988") || t.includes("1988")) return "Seoul 1988";
+  if (t.includes("beauty of joseon") || t.includes("joseon")) return "Beauty of Joseon";
+  if (t.includes("haruharu")) return "Haruharu WONDER";
+  if (t.includes("round lab")) return "Round Lab";
+  if (t.includes("torriden")) return "Torriden";
+  return vendor || "Azyleen";
+}
+
+function inferCategory(title: string, handle: string, productType: string): string {
+  const text = (title + " " + handle + " " + productType).toLowerCase();
+  if (text.includes("gift") || text.includes("voucher") || text.includes("card")) return "gift-vouchers";
+  if (productType && productType !== "Default" && productType !== "Skincare") return productType.toLowerCase();
+  if (text.includes("sun") || text.includes("spf") || text.includes("water-fit")) return "sunscreen";
+  if (text.includes("serum") || text.includes("essence") || text.includes("ampoule") || text.includes("niacin") || text.includes("retinal")) return "serums";
+  if (text.includes("cream") || text.includes("moisturiser") || text.includes("relief") || text.includes("enrich") || text.includes("eye")) return "moisturisers";
+  if (text.includes("toner") || text.includes("glycolic")) return "toners";
+  if (text.includes("cleans")) return "cleansers";
+  if (text.includes("mask")) return "masks";
+  return "serums";
+}
+
 export async function getShopifyProducts(): Promise<ShopifyProduct[]> {
   const query = `
     query GetProducts {
-      products(first: 25) {
+      products(first: 50) {
         edges {
           node {
             id
@@ -425,27 +477,38 @@ export async function getShopifyProducts(): Promise<ShopifyProduct[]> {
     return data.products.edges.map(({ node }) => {
       const meta = PRODUCT_METADATA_MAP[node.handle] || {};
       const parsedPrice = parseFloat(node.priceRange.minVariantPrice.amount);
-      const price = meta.salePrice || (parsedPrice > 0 ? parsedPrice : 3499);
-      const comparePrice = meta.originalPrice || (node.compareAtPriceRange?.minVariantPrice ? parseFloat(node.compareAtPriceRange.minVariantPrice.amount) : null);
+      const price = parsedPrice > 0 ? parsedPrice : (meta.salePrice || 3499);
+      const liveCompare = node.compareAtPriceRange?.minVariantPrice ? parseFloat(node.compareAtPriceRange.minVariantPrice.amount) : null;
+      const comparePrice = (liveCompare && liveCompare > price) ? liveCompare : (meta.originalPrice || null);
+      const detectedCategory = meta.category || inferCategory(node.title, node.handle, node.productType);
+      const detectedVendor = meta.brand || inferBrand(node.title, node.vendor);
 
       return {
         id: node.id,
         title: node.title,
         handle: node.handle,
         description: node.description || (meta.benefits ? meta.benefits.join(". ") : "Authentic Korean skincare formulation."),
-        productType: node.productType || meta.category || "Skincare",
-        vendor: meta.brand || node.vendor || "Azyleen",
+        productType: node.productType || detectedCategory || "Skincare",
+        vendor: detectedVendor,
         tags: node.tags || [],
-        availableForSale: node.availableForSale,
+        availableForSale: Boolean(node.availableForSale),
         price,
         compareAtPrice: comparePrice && comparePrice > price ? comparePrice : null,
         currency: node.priceRange.minVariantPrice.currencyCode || "PKR",
-        images: node.images.edges.map((e) => e.node),
-        variants: node.variants.edges.map((e) => e.node),
+        images: (() => {
+          const imgs = node.images.edges.map((e) => e.node);
+          if (node.handle === "gift-card" || node.handle.includes("gift")) {
+            return [{ url: "/images/azyleen-luxury-gift-box.jpg", altText: "Azyleen Luxury Keepsake Gift Box", width: 1024, height: 1024 }, ...imgs.filter((i) => !i.url.includes("gift_card.jpg"))];
+          }
+          return imgs;
+        })(),
+        variants: node.variants.edges
+          .map((e) => e.node)
+          .filter((v) => !v.title.includes("$")),
         rating: meta.rating || 4.9,
         reviewsCount: meta.reviewsCount || 42,
-        viewingNow: meta.viewingNow || Math.floor(Math.random() * 20 + 15),
-        category: meta.category || "serums",
+        viewingNow: meta.viewingNow || ((node.title.length % 15) + 18),
+        category: detectedCategory,
         concern: meta.concern || "All Skin Types",
         benefits: meta.benefits || ["100% Authentic Korean Formula", "Dermatologist Tested", "Gentle on Sensitive Skin"],
         howToUse: meta.howToUse || "Apply 2-3 drops to clean skin, gently tap until fully absorbed.",
@@ -455,7 +518,7 @@ export async function getShopifyProducts(): Promise<ShopifyProduct[]> {
 
   // Fallback to direct products.json fetch if Storefront GraphQL has any hiccups
   try {
-    const res = await fetch("https://azyleen.com/products.json", { next: { revalidate: 60 } });
+    const res = await fetch(`https://${SHOPIFY_DOMAIN}/products.json`, { next: { revalidate: 60 } });
     if (res.ok) {
       const json = await res.json();
       if (json.products) {
@@ -477,19 +540,27 @@ export async function getShopifyProducts(): Promise<ShopifyProduct[]> {
             price,
             compareAtPrice: comparePrice && comparePrice > price ? comparePrice : null,
             currency: "PKR",
-            images: p.images?.map((img: any) => ({
-              url: img.src,
-              altText: p.title,
-              width: img.width,
-              height: img.height,
-            })) || [],
-            variants: p.variants?.map((v: any) => ({
-              id: String(v.id),
-              title: v.title,
-              availableForSale: v.available,
-              price: { amount: String(v.price), currencyCode: "PKR" },
-              compareAtPrice: v.compare_at_price ? { amount: String(v.compare_at_price), currencyCode: "PKR" } : null,
-            })) || [],
+            images: (() => {
+              const imgs = p.images?.map((img: any) => ({
+                url: img.src,
+                altText: p.title,
+                width: img.width,
+                height: img.height,
+              })) || [];
+              if (p.handle === "gift-card" || p.handle?.includes("gift")) {
+                return [{ url: "/images/azyleen-luxury-gift-box.jpg", altText: "Azyleen Luxury Keepsake Gift Box", width: 1024, height: 1024 }, ...imgs.filter((i: any) => !i.url.includes("gift_card.jpg"))];
+              }
+              return imgs;
+            })(),
+            variants: (p.variants || [])
+              .map((v: any) => ({
+                id: String(v.id),
+                title: v.title,
+                availableForSale: v.available,
+                price: { amount: String(v.price), currencyCode: "PKR" },
+                compareAtPrice: v.compare_at_price ? { amount: String(v.compare_at_price), currencyCode: "PKR" } : null,
+              }))
+              .filter((v: any) => !v.title.includes("$")),
             rating: meta.rating || 4.9,
             reviewsCount: meta.reviewsCount || 42,
             viewingNow: meta.viewingNow || 28,
@@ -555,7 +626,10 @@ export async function getShopifyCollections(): Promise<ShopifyCollection[]> {
 }
 
 export async function getShopifyProductByHandle(handle: string): Promise<ShopifyProduct | null> {
+  if (!handle) return null;
   const all = await getShopifyProducts();
-  const matched = all.find((p) => p.handle === handle);
-  return matched || all[0] || null;
+  const matched = all.find(
+    (p) => p.handle === handle || p.handle.toLowerCase() === handle.toLowerCase()
+  );
+  return matched || null;
 }

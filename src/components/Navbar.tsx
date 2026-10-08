@@ -2,7 +2,8 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { Search, ShoppingBag, Heart, Menu, X, Sparkles, MessageCircle, ArrowRight, User } from "lucide-react";
+import { usePathname } from "next/navigation";
+import { Search, ShoppingBag, Heart, Menu, X, Sparkles, MessageCircle, ArrowRight, User, Gift } from "lucide-react";
 import { useCart } from "@/context/CartContext";
 import { useWishlist } from "@/context/WishlistContext";
 import { useAuth } from "@/context/AuthContext";
@@ -14,12 +15,18 @@ interface NavbarProps {
 }
 
 export default function Navbar({ products }: NavbarProps) {
+  const pathname = usePathname();
   const { openCart, totalItems, subtotal } = useCart();
   const { totalWishlist } = useWishlist();
   const { user, isAuthenticated } = useAuth();
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+
+  const isActive = (href: string) => {
+    if (href === "/") return pathname === "/";
+    return pathname === href || pathname.startsWith(href + "/");
+  };
 
   useEffect(() => {
     const handleScroll = () => {
@@ -30,29 +37,35 @@ export default function Navbar({ products }: NavbarProps) {
   }, []);
 
   const navLinks = [
-    { label: "Bestsellers", href: "#products" },
-    { label: "Serums", href: "#products" },
-    { label: "Moisturisers", href: "#products" },
-    { label: "Sunscreen", href: "#products" },
-    { label: "Ritual", href: "#routine" },
-    { label: "Our Story", href: "#story" },
-    { label: "Reviews", href: "#reviews" },
+    { label: "Bestsellers", href: "/bestsellers" },
+    { label: "Serums", href: "/serums" },
+    { label: "Moisturisers", href: "/moisturisers" },
+    { label: "Sunscreen", href: "/sunscreen" },
+    { label: "Ritual", href: "/ritual" },
+    { label: "Our Story", href: "/our-story" },
+    { label: "Support", href: "/support" },
   ];
 
   return (
     <>
-      {/* Floating Pill-Shaped Luxury Header */}
-      <header className="sticky top-2 sm:top-4 z-40 w-full px-3 sm:px-6 pointer-events-none transition-all duration-300">
-        <div className="max-w-6xl mx-auto pointer-events-auto">
+      {/* Floating Pill-Shaped Luxury Header with Perfectly Balanced Spacing */}
+      <header
+        className={`sticky z-40 w-full px-3 sm:px-5 lg:px-7 pointer-events-none transition-all duration-300 ${
+          isScrolled
+            ? "top-2 sm:top-2.5 pt-0.5 pb-1.5"
+            : "top-0 pt-3 pb-2 sm:pt-4 sm:pb-2.5"
+        }`}
+      >
+        <div className="max-w-7xl mx-auto pointer-events-auto">
           <nav
-            className={`rounded-full transition-all duration-300 px-4 sm:px-6 py-2.5 sm:py-3 flex items-center justify-between border ${
+            className={`rounded-full transition-all duration-300 flex items-center justify-between gap-2 sm:gap-4 lg:gap-5 border ${
               isScrolled
-                ? "bg-white/95 backdrop-blur-2xl border-[#D4A0B0]/45 shadow-2xl shadow-[#5C3544]/15 py-2 sm:py-2.5"
-                : "bg-white/90 backdrop-blur-xl border-[#D4A0B0]/35 shadow-xl shadow-[#5C3544]/8"
+                ? "bg-white/95 backdrop-blur-2xl border-[#D4A0B0]/45 shadow-xl shadow-[#5C3544]/15 px-4 sm:px-6 lg:px-7 py-2 sm:py-2.5"
+                : "bg-white/90 backdrop-blur-xl border-[#D4A0B0]/35 shadow-lg shadow-[#5C3544]/8 px-4 sm:px-6 lg:px-7 py-2.5 sm:py-3"
             }`}
           >
             {/* Mobile Controls (Menu & Search) */}
-            <div className="flex items-center lg:hidden">
+            <div className="flex items-center lg:hidden gap-1">
               <button
                 onClick={() => setIsMobileMenuOpen(true)}
                 className="p-1.5 rounded-full text-[#5C3544] hover:bg-[#F9EEF1] transition-colors"
@@ -62,7 +75,7 @@ export default function Navbar({ products }: NavbarProps) {
               </button>
               <button
                 onClick={() => setIsSearchOpen(true)}
-                className="p-1.5 rounded-full text-[#5C3544] hover:bg-[#F9EEF1] transition-colors ml-1"
+                className="p-1.5 rounded-full text-[#5C3544] hover:bg-[#F9EEF1] transition-colors"
                 aria-label="Search"
               >
                 <Search className="w-4 h-4" />
@@ -70,9 +83,9 @@ export default function Navbar({ products }: NavbarProps) {
             </div>
 
             {/* Left: Brand Monogram Logo */}
-            <Link href="/" className="flex items-center gap-2 group select-none">
+            <Link href="/" className="flex items-center gap-2.5 sm:gap-3 group select-none flex-shrink-0">
               {/* Azyleen Floral Petal SVG Icon */}
-              <div className="w-7 h-7 rounded-full bg-[#F9EEF1] flex items-center justify-center border border-[#D4A0B0]/30 shadow-xs flex-shrink-0">
+              <div className="w-7.5 h-7.5 sm:w-8.5 sm:h-8.5 rounded-full bg-[#F9EEF1] flex items-center justify-center border border-[#D4A0B0]/30 shadow-xs flex-shrink-0">
                 <svg
                   className="w-4 h-4 text-[#BA788C] transition-transform duration-500 group-hover:rotate-45"
                   viewBox="0 0 32 32"
@@ -91,31 +104,38 @@ export default function Navbar({ products }: NavbarProps) {
                 <span className="font-serif text-lg sm:text-xl tracking-[0.2em] font-medium text-[#5C3544] group-hover:text-[#7A4F5C] transition-colors uppercase leading-none">
                   AZYLEEN
                 </span>
-                <span className="text-[7.5px] tracking-[0.3em] uppercase text-[#7E636E] font-sans font-semibold hidden sm:inline -mt-0.5">
+                <span className="text-[7.5px] sm:text-[8px] tracking-[0.3em] uppercase text-[#7E636E] font-sans font-semibold hidden sm:inline mt-0.5">
                   Korean Skin Care
                 </span>
               </div>
             </Link>
 
-            {/* Center: Desktop Navigation Pills */}
-            <div className="hidden lg:flex items-center gap-1 bg-[#FDF6F4]/90 p-1 rounded-full border border-[#D4A0B0]/25">
-              {navLinks.map((link) => (
-                <a
-                  key={link.label}
-                  href={link.href}
-                  className="px-3.5 py-1.5 rounded-full text-xs font-semibold uppercase tracking-wider text-[#5C3544] hover:text-[#5C3544] hover:bg-white transition-all duration-200"
-                >
-                  {link.label}
-                </a>
-              ))}
+            {/* Center: Desktop Navigation Pills with Balanced Spacing */}
+            <div className="hidden lg:flex items-center gap-0.5 xl:gap-1.5 bg-[#FDF6F4]/90 px-2.5 py-1 rounded-full border border-[#D4A0B0]/25 shadow-2xs">
+              {navLinks.map((link) => {
+                const active = isActive(link.href);
+                return (
+                  <Link
+                    key={link.label}
+                    href={link.href}
+                    className={`px-2.5 xl:px-3.5 py-1.5 rounded-full text-[11px] xl:text-xs font-semibold uppercase tracking-wider transition-all duration-200 whitespace-nowrap ${
+                      active
+                        ? "bg-[#5C3544] text-white shadow-xs font-bold"
+                        : "text-[#5C3544] hover:text-[#5C3544] hover:bg-white hover:shadow-2xs"
+                    }`}
+                  >
+                    {link.label}
+                  </Link>
+                );
+              })}
             </div>
 
             {/* Right: Search, Wishlist & Pill Shopping Bag */}
-            <div className="flex items-center gap-2 sm:gap-2.5">
+            <div className="flex items-center gap-1.5 sm:gap-2.5 flex-shrink-0">
               {/* Search Button */}
               <button
                 onClick={() => setIsSearchOpen(true)}
-                className="hidden lg:flex items-center justify-center w-8 h-8 rounded-full text-[#5C3544] hover:bg-[#F9EEF1] transition-colors"
+                className="hidden lg:flex items-center justify-center w-8.5 h-8.5 rounded-full text-[#5C3544] hover:bg-[#F9EEF1] transition-colors cursor-pointer"
                 aria-label="Search formulations"
                 title="Search"
               >
@@ -125,7 +145,7 @@ export default function Navbar({ products }: NavbarProps) {
               {/* Customer Account / Demo Login */}
               <Link
                 href={isAuthenticated ? "/account" : "/login"}
-                className="flex items-center justify-center w-8 h-8 rounded-full text-[#5C3544] hover:bg-[#F9EEF1] transition-colors"
+                className="flex items-center justify-center w-8.5 h-8.5 rounded-full text-[#5C3544] hover:bg-[#F9EEF1] transition-colors cursor-pointer"
                 aria-label="Customer Account"
                 title={isAuthenticated ? `Account (${user?.firstName})` : "Sign In / Demo Login"}
               >
@@ -138,16 +158,30 @@ export default function Navbar({ products }: NavbarProps) {
                 )}
               </Link>
 
+              {/* Gift Vouchers Link */}
+              <Link
+                href="/gift-vouchers"
+                className={`flex items-center justify-center w-8.5 h-8.5 rounded-full transition-colors cursor-pointer ${
+                  pathname === "/gift-vouchers"
+                    ? "bg-[#5C3544] text-white shadow-xs"
+                    : "text-[#5C3544] hover:bg-[#F9EEF1]"
+                }`}
+                aria-label="Gift Vouchers"
+                title="Gift Vouchers & Luxury Keepsake Boxes"
+              >
+                <Gift className={`w-4 h-4 ${pathname === "/gift-vouchers" ? "text-white" : "text-[#BA788C]"}`} />
+              </Link>
+
               {/* Wishlist Button */}
               <a
                 href="#products"
-                className="relative flex items-center justify-center w-8 h-8 rounded-full text-[#5C3544] hover:bg-[#F9EEF1] transition-colors"
+                className="relative flex items-center justify-center w-8.5 h-8.5 rounded-full text-[#5C3544] hover:bg-[#F9EEF1] transition-colors cursor-pointer"
                 aria-label="Wishlist"
                 title="Wishlist"
               >
                 <Heart className="w-4 h-4" />
                 {totalWishlist > 0 && (
-                  <span className="absolute top-0 right-0 w-3.5 h-3.5 rounded-full bg-[#BA788C] text-white text-[8.5px] font-bold flex items-center justify-center animate-pulse">
+                  <span className="absolute top-0.5 right-0.5 w-3.5 h-3.5 rounded-full bg-[#BA788C] text-white text-[8.5px] font-bold flex items-center justify-center animate-pulse">
                     {totalWishlist}
                   </span>
                 )}
@@ -156,18 +190,18 @@ export default function Navbar({ products }: NavbarProps) {
               {/* Pill-Shaped Bag Trigger */}
               <button
                 onClick={openCart}
-                className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#5C3544] hover:bg-[#43232F] text-white transition-all shadow-md hover:shadow-lg cursor-pointer group"
+                className="flex items-center gap-2 px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-full bg-[#5C3544] hover:bg-[#43232F] text-white transition-all shadow-md hover:shadow-lg cursor-pointer group flex-shrink-0"
                 aria-label="Shopping Bag"
               >
                 <div className="relative">
-                  <ShoppingBag className="w-4 h-4 text-[#D4A0B0] group-hover:scale-105 transition-transform" />
+                  <ShoppingBag className="w-3.5 h-3.5 text-[#D4A0B0] group-hover:scale-105 transition-transform" />
                   {totalItems > 0 && (
                     <span className="absolute -top-1.5 -right-2 min-w-3.5 h-3.5 px-0.5 rounded-full bg-white text-[#5C3544] text-[8.5px] font-bold flex items-center justify-center">
                       {totalItems}
                     </span>
                   )}
                 </div>
-                <span className="text-xs font-bold tracking-wide">
+                <span className="text-xs font-bold tracking-wide whitespace-nowrap">
                   {subtotal > 0 ? `Rs. ${subtotal.toLocaleString()}` : "Bag"}
                 </span>
               </button>
@@ -205,17 +239,49 @@ export default function Navbar({ products }: NavbarProps) {
                 </button>
               </div>
 
-              <nav className="py-6 space-y-3">
-                {navLinks.map((link) => (
-                  <a
-                    key={link.label}
-                    href={link.href}
-                    onClick={() => setIsMobileMenuOpen(false)}
-                    className="block text-base font-serif text-[#5C3544] hover:text-[#BA788C] transition-colors py-1"
+              <nav className="py-6 space-y-2">
+                {navLinks.map((link) => {
+                  const active = isActive(link.href);
+                  return (
+                    <Link
+                      key={link.label}
+                      href={link.href}
+                      onClick={() => setIsMobileMenuOpen(false)}
+                      className={`flex items-center justify-between text-base font-serif py-2 px-3.5 rounded-xl transition-all duration-200 ${
+                        active
+                          ? "bg-[#5C3544] text-white font-semibold shadow-xs"
+                          : "text-[#5C3544] hover:text-[#BA788C] hover:bg-[#F9EEF1]/60"
+                      }`}
+                    >
+                      <span>{link.label}</span>
+                      {active && <span className="w-1.5 h-1.5 rounded-full bg-white shadow-xs" />}
+                    </Link>
+                  );
+                })}
+
+                <Link
+                  href="/gift-vouchers"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className={`flex items-center justify-between text-base font-serif py-2.5 px-3.5 rounded-2xl border transition-all mt-3 ${
+                    pathname === "/gift-vouchers"
+                      ? "bg-[#5C3544] text-white border-[#5C3544] shadow-xs"
+                      : "text-[#5C3544] hover:text-[#BA788C] bg-[#F9EEF1] border-[#D4A0B0]/30"
+                  }`}
+                >
+                  <span className="flex items-center gap-2">
+                    <Gift className={`w-4 h-4 ${pathname === "/gift-vouchers" ? "text-white" : "text-[#BA788C]"}`} />
+                    <span>Gift Vouchers</span>
+                  </span>
+                  <span
+                    className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded-full ${
+                      pathname === "/gift-vouchers"
+                        ? "bg-white text-[#5C3544]"
+                        : "text-white bg-[#5C3544]"
+                    }`}
                   >
-                    {link.label}
-                  </a>
-                ))}
+                    Gifting
+                  </span>
+                </Link>
               </nav>
             </div>
 

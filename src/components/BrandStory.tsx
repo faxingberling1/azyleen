@@ -1,6 +1,7 @@
 import React from "react";
 import Image from "next/image";
-import { Sparkles, ShieldCheck, HeartHandshake } from "lucide-react";
+import Link from "next/link";
+import { Sparkles, ShieldCheck, HeartHandshake, ArrowRight } from "lucide-react";
 
 export default function BrandStory() {
   const stats = [
@@ -66,6 +67,17 @@ export default function BrandStory() {
                   </div>
                 </div>
               ))}
+            </div>
+
+            {/* Read Full Story Button */}
+            <div className="pt-2">
+              <Link
+                href="/our-story"
+                className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-[#5C3544] hover:bg-[#43232F] text-white text-xs font-semibold tracking-wider uppercase transition-all shadow-md group cursor-pointer"
+              >
+                <span>Read Our Full Story</span>
+                <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
+              </Link>
             </div>
           </div>
 

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const SHOPIFY_DOMAIN = process.env.SHOPIFY_STORE_DOMAIN || "qdza9d-gk.myshopify.com";
-const SHOPIFY_TOKEN = process.env.SHOPIFY_STOREFRONT_ACCESS_TOKEN || "4954dfe736d1eb015a46e5166cde5136";
+const SHOPIFY_DOMAIN = process.env.SHOPIFY_STORE_DOMAIN || "azyleen-demo.myshopify.com";
+const SHOPIFY_TOKEN = process.env.SHOPIFY_STOREFRONT_ACCESS_TOKEN || "20ba6c587e0f238d2ebcac98d55418de";
 const GRAPHQL_URL = `https://${SHOPIFY_DOMAIN}/api/2024-01/graphql.json`;
 
 async function shopifyQuery(query: string, variables = {}) {

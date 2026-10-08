@@ -41,10 +41,11 @@ export default function ProductCard({ product, onQuickView }: ProductCardProps) 
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      {/* Product Image Frame */}
-      <div
-        onClick={() => onQuickView(product)}
-        className="relative aspect-square w-full rounded-2xl overflow-hidden bg-[#FDF6F4] flex items-center justify-center cursor-pointer"
+      {/* Product Image Frame (Click to open full product details) */}
+      <Link
+        href={`/products/${product.handle}`}
+        className="relative aspect-square w-full rounded-2xl overflow-hidden bg-[#FDF6F4] flex items-center justify-center cursor-pointer block"
+        title={`View ${product.title} details`}
       >
         {primaryImage ? (
           <>
@@ -75,12 +76,18 @@ export default function ProductCard({ product, onQuickView }: ProductCardProps) 
 
         {/* Top Badges */}
         <div className="absolute top-3 left-3 flex flex-col gap-1.5 z-10 pointer-events-none">
-          {discountPercent && (
-            <span className="bg-[#D93025] text-white text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider shadow-sm">
-              -{discountPercent}% OFF
+          {!product.availableForSale ? (
+            <span className="bg-[#5C3544] text-white text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider shadow-sm">
+              Sold Out
             </span>
+          ) : (
+            discountPercent && (
+              <span className="bg-[#D93025] text-white text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider shadow-sm">
+                -{discountPercent}% OFF
+              </span>
+            )
           )}
-          {product.viewingNow && product.viewingNow > 22 && (
+          {product.availableForSale && product.viewingNow && product.viewingNow > 22 && (
             <span className="bg-[#5C3544] text-[#FDF6F4] text-[9.5px] font-semibold px-2 py-0.5 rounded-full flex items-center gap-1 shadow-sm">
               <span className="w-1.5 h-1.5 rounded-full bg-[#D4A0B0] animate-ping" />
               {product.viewingNow} viewing
@@ -91,6 +98,7 @@ export default function ProductCard({ product, onQuickView }: ProductCardProps) 
         {/* Wishlist Button */}
         <button
           onClick={(e) => {
+            e.preventDefault();
             e.stopPropagation();
             toggleWishlist(product.id);
           }}
@@ -108,6 +116,7 @@ export default function ProductCard({ product, onQuickView }: ProductCardProps) 
         <div className="absolute inset-x-3 bottom-3 z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 hidden sm:block">
           <button
             onClick={(e) => {
+              e.preventDefault();
               e.stopPropagation();
               onQuickView(product);
             }}
@@ -117,7 +126,7 @@ export default function ProductCard({ product, onQuickView }: ProductCardProps) 
             <span>Quick View</span>
           </button>
         </div>
-      </div>
+      </Link>
 
       {/* Product Details */}
       <div className="mt-4 flex flex-col flex-grow justify-between space-y-3">
@@ -160,12 +169,18 @@ export default function ProductCard({ product, onQuickView }: ProductCardProps) 
 
           <button
             onClick={handleAdd}
-            disabled={isAdding}
-            className="px-3.5 py-2 rounded-xl bg-[#5C3544] text-white hover:bg-[#43232F] transition-all duration-300 cursor-pointer shadow-sm hover:shadow-md flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider"
-            title="Add to Bag"
+            disabled={isAdding || !product.availableForSale}
+            className={`px-3.5 py-2 rounded-xl transition-all duration-300 flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider ${
+              product.availableForSale
+                ? "bg-[#5C3544] text-white hover:bg-[#43232F] cursor-pointer shadow-sm hover:shadow-md"
+                : "bg-[#EAD9DE] text-[#7E636E] cursor-not-allowed"
+            }`}
+            title={product.availableForSale ? "Add to Bag" : "Sold Out in Seoul Warehouse"}
           >
             <ShoppingBag className={`w-3.5 h-3.5 ${isAdding ? "animate-bounce" : ""}`} />
-            <span className="hidden sm:inline">Add</span>
+            <span className="hidden sm:inline">
+              {product.availableForSale ? "Add" : "Sold Out"}
+            </span>
           </button>
         </div>
       </div>

@@ -40,7 +40,7 @@ body {
 .ribbon-track {
   display: flex !important;
   width: max-content !important;
-  animation: ribbonSlide 28s linear infinite !important;
+  animation: ribbonSlide 65s linear infinite !important;
   will-change: transform;
 }
 
@@ -51,7 +51,7 @@ body {
 .ribbon-track-fast {
   display: flex !important;
   width: max-content !important;
-  animation: ribbonSlide 20s linear infinite !important;
+  animation: ribbonSlide 45s linear infinite !important;
   will-change: transform;
 }
 

@@ -14,6 +14,8 @@ import {
   CheckCircle2,
   ChevronDown,
   ChevronUp,
+  ChevronLeft,
+  ChevronRight,
   MessageCircle,
   ArrowRight,
   Clock,
@@ -39,6 +41,24 @@ export default function ProductPageClient({ product, relatedProducts }: ProductP
   // Gallery state
   const images = product.images.length > 0 ? product.images : [{ url: "", altText: product.title }];
   const [activeImageIdx, setActiveImageIdx] = useState(0);
+  const thumbnailScrollRef = React.useRef<HTMLDivElement>(null);
+
+  const scrollThumbnails = (direction: "left" | "right") => {
+    if (thumbnailScrollRef.current) {
+      thumbnailScrollRef.current.scrollBy({
+        left: direction === "left" ? -140 : 140,
+        behavior: "smooth",
+      });
+    }
+  };
+
+  const nextImage = () => {
+    setActiveImageIdx((prev) => (prev + 1) % images.length);
+  };
+
+  const prevImage = () => {
+    setActiveImageIdx((prev) => (prev - 1 + images.length) % images.length);
+  };
 
   // Quantity & Volume Tier Upsell state
   const [selectedTier, setSelectedTier] = useState<1 | 2 | 3>(1);
@@ -59,6 +79,23 @@ export default function ProductPageClient({ product, relatedProducts }: ProductP
 
   const isFavorited = isInWishlist(product.id);
 
+  // Variants state (Options / Customizations / Denominations, filtered to PKR only)
+  const variants = (product.variants || []).filter((v) => !v.title.includes("$"));
+  const [selectedVariantId, setSelectedVariantId] = useState<string>(
+    variants[0]?.id || ""
+  );
+
+  const selectedVariant = variants.find((v) => v.id === selectedVariantId) || variants[0] || null;
+
+  // Base unit pricing from selected variant or product
+  const baseUnitPrice = selectedVariant
+    ? parseFloat(selectedVariant.price.amount)
+    : product.price;
+
+  const baseCompareUnitPrice = selectedVariant?.compareAtPrice
+    ? parseFloat(selectedVariant.compareAtPrice.amount)
+    : product.compareAtPrice;
+
   // Volume Tier calculations (Upsell 1)
   const tierDiscounts = {
     1: 0,
@@ -67,16 +104,30 @@ export default function ProductPageClient({ product, relatedProducts }: ProductP
   };
 
   const getTierPrice = (tier: 1 | 2 | 3) => {
-    const rawTotal = product.price * tier;
+    const rawTotal = baseUnitPrice * tier;
     const discount = rawTotal * tierDiscounts[tier];
     return Math.round(rawTotal - discount);
   };
 
   const getTierSavings = (tier: 1 | 2 | 3) => {
     if (tier === 1) return 0;
-    const rawTotal = product.price * tier;
+    const rawTotal = baseUnitPrice * tier;
     return Math.round(rawTotal * tierDiscounts[tier]);
   };
+
+  // Dynamically updating active price for display & checkout
+  const activePrice = getTierPrice(selectedTier);
+  const activeComparePrice = baseCompareUnitPrice
+    ? Math.round(baseCompareUnitPrice * selectedTier)
+    : Math.round(baseUnitPrice * 1.4 * selectedTier);
+  const activeSavings = activeComparePrice > activePrice ? activeComparePrice - activePrice : null;
+  const activeSavingsPercent = activeComparePrice > activePrice
+    ? Math.round(((activeComparePrice - activePrice) / activeComparePrice) * 100)
+    : (selectedTier > 1 ? (selectedTier === 2 ? 10 : 15) : 40);
+
+  const isVoucher = product.handle.includes("gift") || product.category === "gift-vouchers";
+  const unitLabel = isVoucher ? "Voucher" : (product.category === "masks" ? "Sheet" : "Bottle");
+  const unitLabelPlural = isVoucher ? "Vouchers" : (product.category === "masks" ? "Sheets" : "Bottles");
 
   // Scroll listener for sticky buy bar
   useEffect(() => {
@@ -89,12 +140,26 @@ export default function ProductPageClient({ product, relatedProducts }: ProductP
 
   // Primary Add to Bag handler
   const handleAddToCart = () => {
-    addToCart(product, selectedTier);
+    const productToAdd = selectedVariant
+      ? {
+          ...product,
+          price: parseFloat(selectedVariant.price.amount),
+          title: selectedVariant.title !== "Default Title" ? `${product.title} - ${selectedVariant.title}` : product.title,
+        }
+      : product;
+    addToCart(productToAdd, selectedTier);
   };
 
   // Bundle Add to Bag handler (Upsell 2)
   const handleAddBundle = () => {
-    addToCart(product, 1);
+    const productToAdd = selectedVariant
+      ? {
+          ...product,
+          price: parseFloat(selectedVariant.price.amount),
+          title: selectedVariant.title !== "Default Title" ? `${product.title} - ${selectedVariant.title}` : product.title,
+        }
+      : product;
+    addToCart(productToAdd, 1);
     if (includeUpsell && upsellProduct) {
       addToCart(upsellProduct, 1);
     }
@@ -102,11 +167,12 @@ export default function ProductPageClient({ product, relatedProducts }: ProductP
 
   // WhatsApp Order
   const handleWhatsApp = () => {
-    const msg = `Salam Azyleen! I would like to order the ${product.title} (${selectedTier} item${selectedTier > 1 ? "s" : ""}) for Rs. ${getTierPrice(selectedTier).toLocaleString()} to ${selectedCity} via Cash on Delivery.`;
+    const variantNote = selectedVariant && selectedVariant.title !== "Default Title" ? ` [${selectedVariant.title}]` : "";
+    const msg = `Salam Azyleen! I would like to order the ${product.title}${variantNote} (${selectedTier} ${selectedTier > 1 ? unitLabelPlural : unitLabel}) for Rs. ${activePrice.toLocaleString()} to ${selectedCity} via Cash on Delivery.`;
     window.open(`https://wa.me/923252867992?text=${encodeURIComponent(msg)}`, "_blank");
   };
 
-  const bundleRawTotal = product.price + (upsellProduct ? upsellProduct.price : 0);
+  const bundleRawTotal = baseUnitPrice + (upsellProduct ? upsellProduct.price : 0);
   const bundleDiscountedTotal = Math.round(bundleRawTotal * 0.9); // 10% bundle saving
   const bundleSavings = bundleRawTotal - bundleDiscountedTotal;
 
@@ -147,6 +213,32 @@ export default function ProductPageClient({ product, relatedProducts }: ProductP
                 <div className="font-serif text-3xl text-[#BA788C]">Azyleen</div>
               )}
 
+              {/* Floating Navigation Arrows on Main Stage */}
+              {images.length > 1 && (
+                <>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      prevImage();
+                    }}
+                    className="absolute left-3.5 top-1/2 -translate-y-1/2 z-10 w-9.5 h-9.5 rounded-full bg-white/90 hover:bg-[#5C3544] text-[#5C3544] hover:text-white backdrop-blur-md shadow-md border border-[#D4A0B0]/40 flex items-center justify-center transition-all duration-200 cursor-pointer opacity-80 group-hover:opacity-100 hover:scale-105"
+                    aria-label="Previous image"
+                  >
+                    <ChevronLeft className="w-4.5 h-4.5" />
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      nextImage();
+                    }}
+                    className="absolute right-3.5 top-1/2 -translate-y-1/2 z-10 w-9.5 h-9.5 rounded-full bg-white/90 hover:bg-[#5C3544] text-[#5C3544] hover:text-white backdrop-blur-md shadow-md border border-[#D4A0B0]/40 flex items-center justify-center transition-all duration-200 cursor-pointer opacity-80 group-hover:opacity-100 hover:scale-105"
+                    aria-label="Next image"
+                  >
+                    <ChevronRight className="w-4.5 h-4.5" />
+                  </button>
+                </>
+              )}
+
               {/* Floating Badges */}
               <div className="absolute top-4 left-4 flex flex-col gap-2 z-10 pointer-events-none">
                 <span className="bg-[#D93025] text-white text-[11px] font-bold px-3 py-1 rounded-full uppercase tracking-wider shadow-sm">
@@ -165,7 +257,7 @@ export default function ProductPageClient({ product, relatedProducts }: ProductP
               {/* Wishlist Button */}
               <button
                 onClick={() => toggleWishlist(product.id)}
-                className={`absolute top-4 right-4 z-10 p-2.5 rounded-full backdrop-blur-md transition-all shadow-sm ${
+                className={`absolute top-4 right-4 z-10 p-2.5 rounded-full backdrop-blur-md transition-all shadow-sm cursor-pointer ${
                   isFavorited ? "bg-[#D93025] text-white" : "bg-white/90 text-[#5C3544] hover:bg-white"
                 }`}
                 aria-label="Wishlist toggle"
@@ -178,22 +270,57 @@ export default function ProductPageClient({ product, relatedProducts }: ProductP
                 <Flame className="w-3.5 h-3.5 text-[#D93025] animate-pulse" />
                 <span>{product.viewingNow || 38} people viewing now</span>
               </div>
+
+              {/* Photo Counter Indicator */}
+              {images.length > 1 && (
+                <div className="absolute bottom-4 right-4 bg-white/95 backdrop-blur-md px-2.5 py-1 rounded-full text-[11px] font-mono font-bold text-[#5C3544] border border-[#D4A0B0]/30 shadow-xs">
+                  0{activeImageIdx + 1} / 0{images.length}
+                </div>
+              )}
             </div>
 
-            {/* Thumbnail Strip */}
+            {/* Theme-Based Thumbnail Scroller Strip */}
             {images.length > 1 && (
-              <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-none">
-                {images.map((img, idx) => (
+              <div className="relative bg-[#F9EEF1]/70 p-2 sm:p-2.5 rounded-2xl border border-[#D4A0B0]/35 shadow-xs flex items-center gap-2">
+                {images.length > 4 && (
                   <button
-                    key={idx}
-                    onClick={() => setActiveImageIdx(idx)}
-                    className={`relative w-20 h-20 rounded-2xl overflow-hidden bg-white p-2 border-2 transition-all flex-shrink-0 cursor-pointer shadow-xs ${
-                      activeImageIdx === idx ? "border-[#5C3544] shadow-md scale-105" : "border-[#D4A0B0]/25 opacity-70 hover:opacity-100"
-                    }`}
+                    onClick={() => scrollThumbnails("left")}
+                    className="w-7 h-7 rounded-xl bg-white hover:bg-[#5C3544] text-[#5C3544] hover:text-white border border-[#D4A0B0]/40 shadow-xs flex items-center justify-center transition-all flex-shrink-0 cursor-pointer"
+                    aria-label="Scroll thumbnails left"
                   >
-                    <Image src={img.url} alt="" fill className="object-contain p-1" sizes="80px" />
+                    <ChevronLeft className="w-3.5 h-3.5" />
                   </button>
-                ))}
+                )}
+
+                <div
+                  ref={thumbnailScrollRef}
+                  className="flex gap-2.5 overflow-x-auto py-1 scroll-smooth scrollbar-none flex-grow"
+                >
+                  {images.map((img, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => setActiveImageIdx(idx)}
+                      className={`relative w-16 h-16 sm:w-18 sm:h-18 rounded-xl overflow-hidden bg-white p-1.5 transition-all flex-shrink-0 cursor-pointer ${
+                        activeImageIdx === idx
+                          ? "border-2 border-[#5C3544] ring-2 ring-[#BA788C]/35 shadow-md scale-105"
+                          : "border border-[#D4A0B0]/35 opacity-70 hover:opacity-100 hover:border-[#BA788C] bg-white/80"
+                      }`}
+                      aria-label={`View formulation image ${idx + 1}`}
+                    >
+                      <Image src={img.url} alt="" fill className="object-contain p-1" sizes="72px" />
+                    </button>
+                  ))}
+                </div>
+
+                {images.length > 4 && (
+                  <button
+                    onClick={() => scrollThumbnails("right")}
+                    className="w-7 h-7 rounded-xl bg-white hover:bg-[#5C3544] text-[#5C3544] hover:text-white border border-[#D4A0B0]/40 shadow-xs flex items-center justify-center transition-all flex-shrink-0 cursor-pointer"
+                    aria-label="Scroll thumbnails right"
+                  >
+                    <ChevronRight className="w-3.5 h-3.5" />
+                  </button>
+                )}
               </div>
             )}
           </div>
@@ -230,16 +357,21 @@ export default function ProductPageClient({ product, relatedProducts }: ProductP
               </div>
             </div>
 
-            {/* Pricing Section */}
-            <div className="p-4 rounded-2xl bg-white border border-[#D4A0B0]/30 shadow-xs flex items-baseline justify-between">
+            {/* Dynamic Pricing Section */}
+            <div className="p-4 rounded-2xl bg-white border border-[#D4A0B0]/30 shadow-xs flex items-baseline justify-between transition-all duration-300">
               <div>
                 <div className="flex items-baseline gap-3">
-                  <span className="text-3xl font-bold text-[#5C3544]">
-                    Rs. {product.price.toLocaleString()}
+                  <span className="text-3xl font-bold text-[#5C3544] transition-all">
+                    Rs. {activePrice.toLocaleString()}
                   </span>
-                  {product.compareAtPrice && (
+                  {activeComparePrice && activeComparePrice > activePrice && (
                     <span className="text-base line-through text-[#7E636E]">
-                      Rs. {product.compareAtPrice.toLocaleString()}
+                      Rs. {activeComparePrice.toLocaleString()}
+                    </span>
+                  )}
+                  {selectedTier > 1 && (
+                    <span className="text-[11px] font-bold text-[#1A7A4A] bg-[#ECFDF5] px-2.5 py-0.5 rounded-full">
+                      {selectedTier}x Bundle Applied
                     </span>
                   )}
                 </div>
@@ -251,119 +383,243 @@ export default function ProductPageClient({ product, relatedProducts }: ProductP
               <div className="text-right">
                 <span className="inline-block bg-[#FDF2F2] text-[#D93025] px-2.5 py-1 rounded-lg text-xs font-bold">
                   SAVE{" "}
-                  {product.compareAtPrice
-                    ? `Rs. ${(product.compareAtPrice - product.price).toLocaleString()}`
-                    : "40%"}
+                  {activeSavings
+                    ? `Rs. ${activeSavings.toLocaleString()}`
+                    : `${activeSavingsPercent}%`}
                 </span>
               </div>
             </div>
 
             {/* Urgency & Stock Counter */}
-            <div className="p-3.5 rounded-2xl bg-[#FFF9E6] border border-[#F4E2B8] flex items-center gap-3">
-              <Clock className="w-4 h-4 text-[#C59B6D] flex-shrink-0 animate-spin" />
-              <div className="text-xs text-[#8C6D23]">
-                <strong className="font-bold">High Demand in Pakistan:</strong> Only 7 bottles remaining in Lahore warehouse at this promo price.
+            {isVoucher ? (
+              <div className="p-3.5 rounded-2xl bg-[#F9EEF1]/80 border border-[#D4A0B0]/40 flex items-center gap-3">
+                <Gift className="w-4 h-4 text-[#7A4F5C] flex-shrink-0" />
+                <div className="text-xs text-[#5C3544]">
+                  <strong className="font-bold">Azyleen Gifting Guarantee:</strong> Instant digital voucher code or luxury keepsake foil box with satin plum ribbon.
+                </div>
               </div>
-            </div>
-
-            {/* UPSELL MECHANISM 1: Multi-Buy Volume Tier Discounts */}
-            <div className="space-y-2.5 pt-1">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold uppercase tracking-wider text-[#5C3544] flex items-center gap-1.5">
-                  <Sparkles className="w-3.5 h-3.5 text-[#BA788C]" />
-                  <span>Select Quantity &amp; Unlock Extra Savings:</span>
-                </span>
+            ) : product.availableForSale ? (
+              <div className="p-3.5 rounded-2xl bg-[#FFF9E6] border border-[#F4E2B8] flex items-center gap-3">
+                <Clock className="w-4 h-4 text-[#C59B6D] flex-shrink-0 animate-spin" />
+                <div className="text-xs text-[#8C6D23]">
+                  <strong className="font-bold">High Demand in Pakistan:</strong> Only 7 bottles remaining in Lahore warehouse at this promo price.
+                </div>
               </div>
-
-              <div className="grid grid-cols-3 gap-2.5">
-                {/* 1 Bottle */}
-                <button
-                  type="button"
-                  onClick={() => setSelectedTier(1)}
-                  className={`p-3 rounded-2xl border text-left transition-all cursor-pointer relative ${
-                    selectedTier === 1
-                      ? "border-[#5C3544] bg-white shadow-md ring-2 ring-[#5C3544]/20"
-                      : "border-[#D4A0B0]/30 bg-white/70 hover:bg-white"
-                  }`}
-                >
-                  <div className="text-xs font-bold text-[#1A0E14]">1 Bottle</div>
-                  <div className="text-xs font-bold text-[#5C3544] mt-0.5">
-                    Rs. {product.price.toLocaleString()}
-                  </div>
-                  <div className="text-[10px] text-[#7E636E]">Standard</div>
-                </button>
-
-                {/* 2 Bottles (Best Value) */}
-                <button
-                  type="button"
-                  onClick={() => setSelectedTier(2)}
-                  className={`p-3 rounded-2xl border text-left transition-all cursor-pointer relative ${
-                    selectedTier === 2
-                      ? "border-[#5C3544] bg-white shadow-md ring-2 ring-[#5C3544]/20"
-                      : "border-[#D4A0B0]/30 bg-white/70 hover:bg-white"
-                  }`}
-                >
-                  <span className="absolute -top-2.5 right-2 bg-[#5C3544] text-white text-[8.5px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">
-                    ★ Most Popular
-                  </span>
-                  <div className="text-xs font-bold text-[#1A0E14]">2 Bottles</div>
-                  <div className="text-xs font-bold text-[#5C3544] mt-0.5">
-                    Rs. {getTierPrice(2).toLocaleString()}
-                  </div>
-                  <div className="text-[10px] text-[#1A7A4A] font-bold">
-                    Save extra 10%
-                  </div>
-                </button>
-
-                {/* 3 Bottles (Glow Trio) */}
-                <button
-                  type="button"
-                  onClick={() => setSelectedTier(3)}
-                  className={`p-3 rounded-2xl border text-left transition-all cursor-pointer relative ${
-                    selectedTier === 3
-                      ? "border-[#5C3544] bg-white shadow-md ring-2 ring-[#5C3544]/20"
-                      : "border-[#D4A0B0]/30 bg-white/70 hover:bg-white"
-                  }`}
-                >
-                  <span className="absolute -top-2.5 right-2 bg-[#1A7A4A] text-white text-[8.5px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">
-                    Best Deal
-                  </span>
-                  <div className="text-xs font-bold text-[#1A0E14]">3 Bottles</div>
-                  <div className="text-xs font-bold text-[#5C3544] mt-0.5">
-                    Rs. {getTierPrice(3).toLocaleString()}
-                  </div>
-                  <div className="text-[10px] text-[#1A7A4A] font-bold">
-                    Save extra 15%
-                  </div>
-                </button>
+            ) : (
+              <div className="p-3.5 rounded-2xl bg-[#F9EEF1] border border-[#D4A0B0]/40 flex items-center gap-3">
+                <Clock className="w-4 h-4 text-[#7A4F5C] flex-shrink-0" />
+                <div className="text-xs text-[#5C3544]">
+                  <strong className="font-bold">Sold Out in Lahore:</strong> Next air cargo batch from Seoul is currently en route. Contact us on WhatsApp for reservation.
+                </div>
               </div>
-            </div>
+            )}
 
-            {/* Primary Action Buttons */}
-            <div className="space-y-3 pt-2">
-              <button
-                onClick={handleAddToCart}
-                className="w-full bg-[#5C3544] hover:bg-[#43232F] text-white font-bold text-sm uppercase tracking-wider py-4 rounded-full shadow-xl shadow-[#5C3544]/25 hover:shadow-2xl transition-all flex items-center justify-center gap-2.5 cursor-pointer transform hover:-translate-y-0.5"
-              >
-                <ShoppingBag className="w-4 h-4 text-[#D4A0B0]" />
-                <span>
-                  Add {selectedTier} to Bag • Rs. {getTierPrice(selectedTier).toLocaleString()}
-                </span>
-                {selectedTier > 1 && (
-                  <span className="bg-[#1A7A4A] text-white text-[10px] px-2 py-0.5 rounded-full font-bold ml-1">
-                    Saved Rs. {getTierSavings(selectedTier).toLocaleString()}
+            {/* Dedicated Gift Voucher Studio Banner (For gift vouchers) */}
+            {isVoucher && (
+              <div className="p-4 rounded-2xl bg-gradient-to-r from-[#F9EEF1] via-[#FDF6F4] to-[#F9EEF1] border border-[#BA788C]/40 shadow-xs flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-xl bg-[#5C3544] text-white">
+                    <Gift className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-bold text-[#5C3544]">Bespoke Voucher Studio</h4>
+                    <p className="text-[11px] text-[#7E636E]">
+                      Customize recipient name, custom message, and luxury keepsake box with ribbon.
+                    </p>
+                  </div>
+                </div>
+                <Link
+                  href="/gift-vouchers"
+                  className="px-3.5 py-2 rounded-xl bg-[#5C3544] text-white text-[11px] font-bold uppercase tracking-wider hover:bg-[#43232F] transition-all flex-shrink-0 whitespace-nowrap shadow-xs"
+                >
+                  Custom Studio →
+                </Link>
+              </div>
+            )}
+
+            {/* VARIANT / OPTION CUSTOMIZATION SELECTOR */}
+            {variants.length > 1 && (
+              <div className="space-y-2.5 pt-1">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold uppercase tracking-wider text-[#5C3544] flex items-center gap-1.5">
+                    <Sparkles className="w-3.5 h-3.5 text-[#BA788C]" />
+                    <span>Select {isVoucher ? "Voucher Denomination" : "Option / Size"}:</span>
                   </span>
-                )}
-              </button>
+                  <span className="text-[11px] font-semibold text-[#BA788C]">
+                    {selectedVariant?.title}
+                  </span>
+                </div>
 
-              <button
-                onClick={handleWhatsApp}
-                className="w-full bg-[#E7F6F2] hover:bg-[#D5EFE8] text-[#128C7E] font-bold text-xs uppercase tracking-wider py-3.5 rounded-full border border-[#128C7E]/30 transition-colors flex items-center justify-center gap-2 cursor-pointer"
-              >
-                <MessageCircle className="w-4 h-4 fill-[#128C7E]/20" />
-                <span>Order via WhatsApp (Instant COD)</span>
-              </button>
-            </div>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+                  {variants.map((v) => {
+                    const vPrice = parseFloat(v.price.amount);
+                    const isSelected = v.id === selectedVariantId;
+                    return (
+                      <button
+                        key={v.id}
+                        type="button"
+                        onClick={() => setSelectedVariantId(v.id)}
+                        className={`p-3 rounded-2xl border text-left transition-all cursor-pointer relative ${
+                          isSelected
+                            ? "border-[#5C3544] bg-[#FDF6F4] shadow-md ring-2 ring-[#5C3544]/25"
+                            : "border-[#D4A0B0]/30 bg-white hover:bg-[#FDF6F4]/50"
+                        }`}
+                      >
+                        <div className="text-xs font-bold text-[#1A0E14] line-clamp-1">
+                          {v.title.startsWith("$") ? `Rs. ${vPrice.toLocaleString()} Gift Voucher` : v.title}
+                        </div>
+                        <div className="text-xs font-bold text-[#5C3544] mt-1">
+                          Rs. {vPrice.toLocaleString()}
+                        </div>
+                        {isSelected && (
+                          <span className="absolute top-2.5 right-2.5 w-2 h-2 rounded-full bg-[#5C3544]" />
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* VOUCHER MANDATORY STUDIO CONFIGURATION PANEL */}
+            {isVoucher ? (
+              <div className="p-6 rounded-[28px] bg-gradient-to-br from-[#F9EEF1] via-white to-[#FDF6F4] border-2 border-[#5C3544]/25 shadow-md space-y-4">
+                <div className="flex items-start gap-3.5">
+                  <div className="p-3 rounded-2xl bg-[#5C3544] text-white flex-shrink-0 shadow-sm">
+                    <Gift className="w-5 h-5 text-[#D4A0B0]" />
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#BA788C] block">
+                      ✦ Mandatory Studio Step
+                    </span>
+                    <h3 className="font-serif text-lg text-[#1A0E14] font-medium leading-snug mt-0.5">
+                      Configure Voucher &amp; Keepsake Gift Box
+                    </h3>
+                    <p className="text-xs text-[#7E636E] mt-1.5 leading-relaxed">
+                      To ensure your voucher or keepsake gift box includes the recipient&rsquo;s name, personal note, aesthetic card theme, and optional luxury foil packaging, all orders must be configured inside our Bespoke Studio before being added to bag.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="pt-2 border-t border-[#D4A0B0]/25">
+                  <Link
+                    href={`/gift-vouchers?amount=${baseUnitPrice}&format=physical`}
+                    className="w-full bg-[#5C3544] hover:bg-[#43232F] text-white font-bold text-xs uppercase tracking-wider py-4 rounded-full shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-2.5 cursor-pointer"
+                  >
+                    <Gift className="w-4 h-4 text-[#D4A0B0]" />
+                    <span>Open Bespoke Studio &amp; Personalize Box →</span>
+                  </Link>
+                </div>
+              </div>
+            ) : (
+              <>
+                {/* UPSELL MECHANISM 1: Multi-Buy Volume Tier Discounts */}
+                <div className="space-y-2.5 pt-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold uppercase tracking-wider text-[#5C3544] flex items-center gap-1.5">
+                      <Sparkles className="w-3.5 h-3.5 text-[#BA788C]" />
+                      <span>Select Quantity &amp; Unlock Extra Savings:</span>
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-2.5">
+                    {/* 1 Unit */}
+                    <button
+                      type="button"
+                      onClick={() => setSelectedTier(1)}
+                      className={`p-3 rounded-2xl border text-left transition-all cursor-pointer relative ${
+                        selectedTier === 1
+                          ? "border-[#5C3544] bg-white shadow-md ring-2 ring-[#5C3544]/20"
+                          : "border-[#D4A0B0]/30 bg-white/70 hover:bg-white"
+                      }`}
+                    >
+                      <div className="text-xs font-bold text-[#1A0E14]">1 {unitLabel}</div>
+                      <div className="text-xs font-bold text-[#5C3544] mt-0.5">
+                        Rs. {getTierPrice(1).toLocaleString()}
+                      </div>
+                      <div className="text-[10px] text-[#7E636E]">Standard</div>
+                    </button>
+
+                    {/* 2 Units (Best Value) */}
+                    <button
+                      type="button"
+                      onClick={() => setSelectedTier(2)}
+                      className={`p-3 rounded-2xl border text-left transition-all cursor-pointer relative ${
+                        selectedTier === 2
+                          ? "border-[#5C3544] bg-white shadow-md ring-2 ring-[#5C3544]/20"
+                          : "border-[#D4A0B0]/30 bg-white/70 hover:bg-white"
+                      }`}
+                    >
+                      <span className="absolute -top-2.5 right-2 bg-[#5C3544] text-white text-[8.5px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">
+                        ★ Most Popular
+                      </span>
+                      <div className="text-xs font-bold text-[#1A0E14]">2 {unitLabelPlural}</div>
+                      <div className="text-xs font-bold text-[#5C3544] mt-0.5">
+                        Rs. {getTierPrice(2).toLocaleString()}
+                      </div>
+                      <div className="text-[10px] text-[#1A7A4A] font-bold">
+                        Save extra 10%
+                      </div>
+                    </button>
+
+                    {/* 3 Units (Glow Trio) */}
+                    <button
+                      type="button"
+                      onClick={() => setSelectedTier(3)}
+                      className={`p-3 rounded-2xl border text-left transition-all cursor-pointer relative ${
+                        selectedTier === 3
+                          ? "border-[#5C3544] bg-white shadow-md ring-2 ring-[#5C3544]/20"
+                          : "border-[#D4A0B0]/30 bg-white/70 hover:bg-white"
+                      }`}
+                    >
+                      <span className="absolute -top-2.5 right-2 bg-[#1A7A4A] text-white text-[8.5px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">
+                        Best Deal
+                      </span>
+                      <div className="text-xs font-bold text-[#1A0E14]">3 {unitLabelPlural}</div>
+                      <div className="text-xs font-bold text-[#5C3544] mt-0.5">
+                        Rs. {getTierPrice(3).toLocaleString()}
+                      </div>
+                      <div className="text-[10px] text-[#1A7A4A] font-bold">
+                        Save extra 15%
+                      </div>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Primary Action Buttons */}
+                <div className="space-y-3 pt-2">
+                  <button
+                    onClick={handleAddToCart}
+                    disabled={!product.availableForSale}
+                    className={`w-full font-bold text-sm uppercase tracking-wider py-4 rounded-full shadow-xl transition-all flex items-center justify-center gap-2.5 ${
+                      product.availableForSale
+                        ? "bg-[#5C3544] hover:bg-[#43232F] text-white shadow-[#5C3544]/25 hover:shadow-2xl cursor-pointer transform hover:-translate-y-0.5"
+                        : "bg-[#EAD9DE] text-[#7E636E] cursor-not-allowed"
+                    }`}
+                  >
+                    <ShoppingBag className={`w-4 h-4 ${product.availableForSale ? "text-[#D4A0B0]" : "text-[#7E636E]"}`} />
+                    <span>
+                      {product.availableForSale
+                        ? `Add ${selectedTier} ${selectedTier > 1 ? unitLabelPlural : unitLabel} to Bag • Rs. ${activePrice.toLocaleString()}`
+                        : "Currently Sold Out"}
+                    </span>
+                    {product.availableForSale && selectedTier > 1 && (
+                      <span className="bg-[#1A7A4A] text-white text-[10px] px-2 py-0.5 rounded-full font-bold ml-1">
+                        Saved Rs. {getTierSavings(selectedTier).toLocaleString()}
+                      </span>
+                    )}
+                  </button>
+
+                  <button
+                    onClick={handleWhatsApp}
+                    className="w-full bg-[#E7F6F2] hover:bg-[#D5EFE8] text-[#128C7E] font-bold text-xs uppercase tracking-wider py-3.5 rounded-full border border-[#128C7E]/30 transition-colors flex items-center justify-center gap-2 cursor-pointer"
+                  >
+                    <MessageCircle className="w-4 h-4 fill-[#128C7E]/20" />
+                    <span>{product.availableForSale ? "Order via WhatsApp (Instant COD)" : "Inquire Restock / Pre-order via WhatsApp"}</span>
+                  </button>
+                </div>
+              </>
+            )}
 
             {/* City Delivery & COD Checker */}
             <div className="p-4 rounded-2xl bg-white border border-[#D4A0B0]/25 shadow-xs space-y-2.5">
@@ -608,13 +864,28 @@ export default function ProductPageClient({ product, relatedProducts }: ProductP
             </div>
 
             <div className="flex items-center gap-3">
-              <button
-                onClick={handleAddToCart}
-                className="bg-[#5C3544] hover:bg-[#43232F] text-white font-bold text-xs uppercase tracking-wider px-6 py-3 rounded-full shadow-lg transition-all flex items-center gap-2 cursor-pointer"
-              >
-                <ShoppingBag className="w-4 h-4 text-[#D4A0B0]" />
-                <span>Add to Bag</span>
-              </button>
+              {isVoucher ? (
+                <Link
+                  href="/gift-vouchers"
+                  className="font-bold text-xs uppercase tracking-wider px-6 py-3 rounded-full bg-[#5C3544] hover:bg-[#43232F] text-white shadow-lg transition-all flex items-center gap-2 cursor-pointer"
+                >
+                  <Gift className="w-4 h-4 text-[#D4A0B0]" />
+                  <span>Configure in Studio →</span>
+                </Link>
+              ) : (
+                <button
+                  onClick={handleAddToCart}
+                  disabled={!product.availableForSale}
+                  className={`font-bold text-xs uppercase tracking-wider px-6 py-3 rounded-full shadow-lg transition-all flex items-center gap-2 ${
+                    product.availableForSale
+                      ? "bg-[#5C3544] hover:bg-[#43232F] text-white cursor-pointer"
+                      : "bg-[#EAD9DE] text-[#7E636E] cursor-not-allowed"
+                  }`}
+                >
+                  <ShoppingBag className={`w-4 h-4 ${product.availableForSale ? "text-[#D4A0B0]" : "text-[#7E636E]"}`} />
+                  <span>{product.availableForSale ? "Add to Bag" : "Sold Out"}</span>
+                </button>
+              )}
             </div>
           </div>
         </div>

@@ -129,11 +129,11 @@ export default function QuickViewModal({ product, onClose }: QuickViewModalProps
             {/* Price display */}
             <div className="flex items-baseline gap-3">
               <span className="text-2xl font-bold text-[#5C3544]">
-                Rs. {product.price.toLocaleString()}
+                Rs. {(product.price * quantity).toLocaleString()}
               </span>
               {product.compareAtPrice && (
                 <span className="text-sm line-through text-[#7E636E]">
-                  Rs. {product.compareAtPrice.toLocaleString()}
+                  Rs. {(product.compareAtPrice * quantity).toLocaleString()}
                 </span>
               )}
               {product.compareAtPrice && (
@@ -192,10 +192,19 @@ export default function QuickViewModal({ product, onClose }: QuickViewModalProps
 
               <button
                 onClick={handleAdd}
-                className="flex-grow bg-[#5C3544] hover:bg-[#43232F] text-white py-3.5 px-6 rounded-full text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer shadow-lg hover:shadow-xl transition-all"
+                disabled={!product.availableForSale}
+                className={`flex-grow py-3.5 px-6 rounded-full text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg transition-all ${
+                  product.availableForSale
+                    ? "bg-[#5C3544] hover:bg-[#43232F] text-white cursor-pointer hover:shadow-xl"
+                    : "bg-[#EAD9DE] text-[#7E636E] cursor-not-allowed"
+                }`}
               >
                 <ShoppingBag className="w-4 h-4" />
-                <span>Add to Bag • Rs. {(product.price * quantity).toLocaleString()}</span>
+                <span>
+                  {product.availableForSale
+                    ? `Add to Bag • Rs. ${(product.price * quantity).toLocaleString()}`
+                    : "Sold Out in Lahore"}
+                </span>
               </button>
             </div>
 

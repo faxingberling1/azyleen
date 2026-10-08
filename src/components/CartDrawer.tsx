@@ -1,9 +1,11 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import Image from "next/image";
+import Link from "next/link";
+import confetti from "canvas-confetti";
 import { useCart } from "@/context/CartContext";
-import { X, Plus, Minus, Trash2, ShoppingBag, ArrowRight, MessageCircle, ShieldCheck, Truck } from "lucide-react";
+import { X, Plus, Minus, Trash2, ShoppingBag, ArrowRight, MessageCircle, ShieldCheck, Truck, Sparkles } from "lucide-react";
 
 export default function CartDrawer() {
   const {
@@ -19,6 +21,26 @@ export default function CartDrawer() {
   } = useCart();
 
   const [isCheckingOut, setIsCheckingOut] = useState(false);
+
+  const triggerConfetti = () => {
+    confetti({
+      particleCount: 90,
+      spread: 75,
+      origin: { y: 0.35, x: 0.75 },
+      colors: ["#BA788C", "#5C3544", "#10B981", "#D4A0B0", "#FBBF24", "#F472B6"],
+      zIndex: 99999,
+    });
+  };
+
+  const isFreeShipping = subtotal >= freeShippingThreshold && subtotal > 0;
+  const wasFreeShippingRef = useRef(false);
+
+  useEffect(() => {
+    if (isOpen && isFreeShipping && !wasFreeShippingRef.current) {
+      triggerConfetti();
+    }
+    wasFreeShippingRef.current = isFreeShipping;
+  }, [isOpen, isFreeShipping]);
 
   const handleCheckout = async () => {
     if (cart.length === 0) return;
@@ -36,8 +58,8 @@ export default function CartDrawer() {
       }
     } catch (err) {
       console.error("Checkout redirect error:", err);
-      // Fallback
-      window.location.href = "https://azyleen.com/cart";
+      // Fallback: Use demo store cart
+      window.location.href = "https://azyleen-demo.myshopify.com/cart";
     } finally {
       setIsCheckingOut(false);
     }
@@ -46,6 +68,9 @@ export default function CartDrawer() {
   const [promoCode, setPromoCode] = useState("");
   const [discountApplied, setDiscountApplied] = useState(false);
   const [discountAmount, setDiscountAmount] = useState(0);
+  const [voucherApplied, setVoucherApplied] = useState(false);
+  const [voucherCodeApplied, setVoucherCodeApplied] = useState("");
+  const [voucherAmount, setVoucherAmount] = useState(0);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -65,15 +90,21 @@ export default function CartDrawer() {
 
   const handleApplyPromo = (e: React.FormEvent) => {
     e.preventDefault();
-    if (promoCode.trim().toUpperCase() === "GLOW15") {
+    const clean = promoCode.trim().toUpperCase();
+    if (clean === "GLOW15") {
       setDiscountApplied(true);
       setDiscountAmount(Math.round(subtotal * 0.15));
+    } else if (clean.startsWith("AZ-") || clean.includes("GLOW") || clean.includes("GIFT") || clean.includes("VOUCHER")) {
+      setVoucherApplied(true);
+      setVoucherCodeApplied(clean);
+      const applied = Math.min(subtotal, 3500);
+      setVoucherAmount(applied);
     } else {
-      alert("Invalid code. Try GLOW15 for 15% off!");
+      alert("Invalid code. Try GLOW15 for 15% off, or enter your Azyleen Gift Voucher serial number!");
     }
   };
 
-  const finalTotal = subtotal - (discountApplied ? discountAmount : 0);
+  const finalTotal = Math.max(0, subtotal - (discountApplied ? discountAmount : 0) - (voucherApplied ? voucherAmount : 0));
   const shippingCost = subtotal >= freeShippingThreshold || subtotal === 0 ? 0 : 250;
   const progressPercent = Math.min(100, (subtotal / freeShippingThreshold) * 100);
 
@@ -120,28 +151,49 @@ export default function CartDrawer() {
           </button>
         </div>
 
-        {/* Free Shipping Progress */}
-        <div className="px-6 py-3.5 bg-[#F9EEF1] border-b border-[#D4A0B0]/20">
-          <div className="flex items-center justify-between text-xs font-medium text-[#5C3544] mb-1.5">
-            <span className="flex items-center gap-1.5">
-              <Truck className="w-3.5 h-3.5 text-[#7A4F5C]" />
-              {freeShippingRemaining === 0 ? (
-                <span className="text-[#1A7A4A] font-semibold">🎉 Free Shipping Unlocked!</span>
-              ) : (
+        {/* Free Shipping Progress / Celebratory Bar */}
+        {freeShippingRemaining === 0 ? (
+          <div className="px-6 py-3.5 bg-gradient-to-r from-[#ECFDF5] via-[#D1FAE5] to-[#ECFDF5] border-b border-[#10B981]/30 transition-all shadow-inner">
+            <div className="flex items-center justify-between text-xs font-medium mb-1.5">
+              <span className="flex items-center gap-1.5 text-[#065F46] font-semibold">
+                <span className="text-base animate-bounce">🎉</span>
+                <span>Free Express Shipping Unlocked!</span>
+              </span>
+              <button
+                onClick={triggerConfetti}
+                className="text-[10.5px] font-bold text-[#047857] hover:text-[#065F46] bg-white/90 px-2.5 py-0.5 rounded-full border border-[#10B981]/30 flex items-center gap-1 shadow-xs cursor-pointer transition-transform hover:scale-105 active:scale-95"
+                title="Celebrate again!"
+              >
+                <Sparkles className="w-3 h-3 text-[#10B981]" />
+                <span>Celebrate ✨</span>
+              </button>
+            </div>
+            <div className="w-full h-2 bg-[#A7F3D0] rounded-full overflow-hidden p-0.5 shadow-inner">
+              <div className="h-full bg-gradient-to-r from-[#10B981] via-[#059669] to-[#10B981] rounded-full transition-all duration-700 w-full animate-pulse shadow-sm" />
+            </div>
+            <p className="text-[10px] text-[#047857] font-medium mt-1.5 flex items-center gap-1">
+              <span>✓ Zero delivery charges on this order across Pakistan (Saved Rs. 250)</span>
+            </p>
+          </div>
+        ) : (
+          <div className="px-6 py-3.5 bg-[#F9EEF1] border-b border-[#D4A0B0]/20">
+            <div className="flex items-center justify-between text-xs font-medium text-[#5C3544] mb-1.5">
+              <span className="flex items-center gap-1.5">
+                <Truck className="w-3.5 h-3.5 text-[#7A4F5C]" />
                 <span>Add <strong>Rs. {freeShippingRemaining.toLocaleString()}</strong> more for FREE Shipping</span>
-              )}
-            </span>
-            <span className="text-[11px] text-[#7A4F5C]/80 font-mono">
-              Rs. {freeShippingThreshold.toLocaleString()}
-            </span>
+              </span>
+              <span className="text-[11px] text-[#7A4F5C]/80 font-mono">
+                Rs. {freeShippingThreshold.toLocaleString()}
+              </span>
+            </div>
+            <div className="w-full h-1.5 bg-[#D4A0B0]/25 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-gradient-to-r from-[#D4A0B0] to-[#7A4F5C] transition-all duration-500 rounded-full"
+                style={{ width: `${progressPercent}%` }}
+              />
+            </div>
           </div>
-          <div className="w-full h-1.5 bg-[#D4A0B0]/25 rounded-full overflow-hidden">
-            <div
-              className="h-full bg-gradient-to-r from-[#D4A0B0] to-[#7A4F5C] transition-all duration-500 rounded-full"
-              style={{ width: `${progressPercent}%` }}
-            />
-          </div>
-        </div>
+        )}
 
         {/* Cart Item List */}
         <div className="flex-grow overflow-y-auto px-6 py-4 space-y-4">
@@ -171,13 +223,19 @@ export default function CartDrawer() {
                   key={item.product.id}
                   className="flex gap-4 p-3.5 bg-white/80 rounded-2xl border border-[#D4A0B0]/20 shadow-sm transition-all hover:shadow-md"
                 >
-                  <div className="relative w-20 h-20 rounded-xl overflow-hidden bg-[#F9EEF1] flex-shrink-0">
+                  {/* Clickable Product Thumbnail */}
+                  <Link
+                    href={`/products/${item.product.handle}`}
+                    onClick={closeCart}
+                    className="relative w-20 h-20 rounded-xl overflow-hidden bg-[#F9EEF1] flex-shrink-0 group cursor-pointer block border border-[#D4A0B0]/20"
+                    title={`View ${item.product.title}`}
+                  >
                     {imgUrl ? (
                       <Image
                         src={imgUrl}
                         alt={item.product.title}
                         fill
-                        className="object-cover"
+                        className="object-cover group-hover:scale-105 transition-transform duration-300"
                         sizes="80px"
                       />
                     ) : (
@@ -185,7 +243,7 @@ export default function CartDrawer() {
                         Azyleen
                       </div>
                     )}
-                  </div>
+                  </Link>
 
                   <div className="flex-grow min-w-0 flex flex-col justify-between">
                     <div>
@@ -195,15 +253,28 @@ export default function CartDrawer() {
                         </span>
                         <button
                           onClick={() => removeFromCart(item.product.id)}
-                          className="text-[#7E636E] hover:text-[#D93025] transition-colors p-0.5"
+                          className="text-[#7E636E] hover:text-[#D93025] transition-colors p-0.5 cursor-pointer"
                           title="Remove item"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
                       </div>
-                      <h4 className="text-xs font-medium text-[#1A0E14] line-clamp-1 leading-snug">
+                      {/* Clickable Product Title */}
+                      <Link
+                        href={`/products/${item.product.handle}`}
+                        onClick={closeCart}
+                        className="text-xs font-medium text-[#1A0E14] hover:text-[#BA788C] transition-colors line-clamp-1 leading-snug cursor-pointer block mt-0.5"
+                        title="Read product detail"
+                      >
                         {item.product.title}
-                      </h4>
+                      </Link>
+                      <Link
+                        href={`/products/${item.product.handle}`}
+                        onClick={closeCart}
+                        className="text-[10px] text-[#7A4F5C] hover:underline font-medium inline-block mt-0.5"
+                      >
+                        View details →
+                      </Link>
                     </div>
 
                     <div className="flex items-center justify-between mt-2">
@@ -241,18 +312,18 @@ export default function CartDrawer() {
         {/* Footer Checkout Actions */}
         {cart.length > 0 && (
           <div className="border-t border-[#D4A0B0]/20 p-6 bg-white/90 backdrop-blur-md space-y-4">
-            {/* Promo Code Input */}
+            {/* Promo / Gift Voucher Code Input */}
             <form onSubmit={handleApplyPromo} className="flex gap-2">
               <input
                 type="text"
-                placeholder="Discount Code (e.g. GLOW15)"
+                placeholder="Promo / Gift Voucher Code"
                 value={promoCode}
                 onChange={(e) => setPromoCode(e.target.value)}
                 className="flex-grow px-3.5 py-2 text-xs rounded-xl bg-[#FDF6F4] border border-[#D4A0B0]/30 focus:outline-none focus:border-[#7A4F5C] uppercase placeholder:normal-case"
               />
               <button
                 type="submit"
-                className="px-4 py-2 text-xs font-medium bg-[#F9EEF1] text-[#5C3544] border border-[#D4A0B0]/30 rounded-xl hover:bg-[#D4A0B0]/30 transition-colors"
+                className="px-4 py-2 text-xs font-medium bg-[#F9EEF1] text-[#5C3544] border border-[#D4A0B0]/30 rounded-xl hover:bg-[#D4A0B0]/30 transition-colors cursor-pointer"
               >
                 Apply
               </button>
@@ -268,6 +339,12 @@ export default function CartDrawer() {
                 <div className="flex justify-between text-[#1A7A4A] font-medium">
                   <span>Discount (GLOW15 15%)</span>
                   <span>- Rs. {discountAmount.toLocaleString()}</span>
+                </div>
+              )}
+              {voucherApplied && (
+                <div className="flex justify-between text-[#1A7A4A] font-medium">
+                  <span>Gift Voucher ({voucherCodeApplied})</span>
+                  <span>- Rs. {voucherAmount.toLocaleString()}</span>
                 </div>
               )}
               <div className="flex justify-between">
