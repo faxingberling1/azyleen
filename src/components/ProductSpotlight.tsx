@@ -99,7 +99,7 @@ export default function ProductSpotlight({ products }: ProductSpotlightProps) {
   return (
     <section
       id="featured-curation"
-      className="relative py-12 sm:py-16 scroll-mt-28 overflow-hidden bg-[#FDF6F4] border-y border-[#D4A0B0]/25 select-none"
+      className="relative pt-4 sm:pt-6 pb-12 sm:pb-16 scroll-mt-28 overflow-hidden bg-[#FDF6F4] border-y border-[#D4A0B0]/25 select-none"
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
     >

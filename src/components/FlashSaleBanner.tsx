@@ -2,30 +2,42 @@
 
 import React, { useState, useEffect } from "react";
 import Image from "next/image";
-import Link from "next/link";
 import { Sparkles, Clock, Copy, Check, ArrowRight, ShieldCheck, Tag, Zap } from "lucide-react";
 import { useCart } from "@/context/CartContext";
+import "./FlashSaleBanner.css";
+
+// Turbopack's custom `*.css` rule in next.config disables CSS Modules,
+// so classes are namespaced with an `fsb-` prefix instead.
+const s = new Proxy({} as Record<string, string>, {
+  get: (_, key) => `fsb-${String(key)}`,
+});
+
+const INITIAL = { hours: 5, minutes: 38, seconds: 13 };
+
+/* Azyleen three-petal brand flower */
+function BrandFlower({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="currentColor" aria-hidden="true">
+      <path d="M12 2c2.2 2.4 2.6 5.8 0 9.2C9.4 7.8 9.8 4.4 12 2Z" />
+      <path d="M3.5 7.5c3.2-.2 6 1.8 7.4 5.6-3.8.4-6.8-1.4-7.4-5.6Z" opacity="0.85" />
+      <path d="M20.5 7.5c-.6 4.2-3.6 6-7.4 5.6 1.4-3.8 4.2-5.8 7.4-5.6Z" opacity="0.85" />
+      <path d="M12 13.5c1.5 2.5 1.5 5.2 0 8.5-1.5-3.3-1.5-6 0-8.5Z" opacity="0.6" />
+    </svg>
+  );
+}
 
 export default function FlashSaleBanner() {
   const { openCart } = useCart();
-  const [timeLeft, setTimeLeft] = useState({
-    hours: 5,
-    minutes: 38,
-    seconds: 25,
-  });
+  const [timeLeft, setTimeLeft] = useState(INITIAL);
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     const timer = setInterval(() => {
       setTimeLeft((prev) => {
-        if (prev.seconds > 0) {
-          return { ...prev, seconds: prev.seconds - 1 };
-        } else if (prev.minutes > 0) {
-          return { ...prev, minutes: prev.minutes - 1, seconds: 59 };
-        } else if (prev.hours > 0) {
-          return { hours: prev.hours - 1, minutes: 59, seconds: 59 };
-        }
-        return { hours: 5, minutes: 38, seconds: 25 };
+        if (prev.seconds > 0) return { ...prev, seconds: prev.seconds - 1 };
+        if (prev.minutes > 0) return { ...prev, minutes: prev.minutes - 1, seconds: 59 };
+        if (prev.hours > 0) return { hours: prev.hours - 1, minutes: 59, seconds: 59 };
+        return INITIAL;
       });
     }, 1000);
     return () => clearInterval(timer);
@@ -37,168 +49,155 @@ export default function FlashSaleBanner() {
     setTimeout(() => setCopied(false), 2500);
   };
 
-  return (
-    <section className="py-6 sm:py-10 px-4 sm:px-6 lg:px-8 select-none">
-      <div className="relative max-w-7xl mx-auto rounded-[36px] sm:rounded-[44px] overflow-hidden bg-gradient-to-r from-[#3D1E2B] via-[#4A2635] to-[#2B141E] text-[#FDF6F4] border border-[#D4A0B0]/40 shadow-2xl shadow-[#3D1E2B]/20">
-        {/* Layer 1: Abstract Ambient Light Beams & Silk Glow */}
-        <div className="absolute inset-0 pointer-events-none overflow-hidden">
-          <div className="absolute -top-24 -left-24 w-96 h-96 bg-[#D4A0B0]/25 rounded-full blur-3xl pointer-events-none" />
-          <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-[#C59B6D]/20 rounded-full blur-3xl pointer-events-none" />
-          <div className="absolute top-1/2 left-1/3 -translate-y-1/2 w-80 h-80 bg-[#BA788C]/15 rounded-full blur-3xl pointer-events-none" />
-          {/* Subtle diagonal texture lines */}
-          <div className="absolute inset-0 bg-[radial-gradient(#D4A0B0_1px,transparent_1px)] [background-size:24px_24px] opacity-[0.07]" />
-        </div>
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const units = [
+    { label: "Hours", value: timeLeft.hours },
+    { label: "Mins", value: timeLeft.minutes },
+    { label: "Secs", value: timeLeft.seconds },
+  ];
 
-        <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center px-6 sm:px-12 lg:px-16 py-10 sm:py-14">
-          {/* Left Column: Promotion Copy, Countdown Timer & Coupon Action */}
-          <div className="lg:col-span-7 space-y-6 text-center lg:text-left">
-            {/* Top Pill Badge */}
-            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-[#D4A0B0]/30 shadow-xs">
-              <Zap className="w-3.5 h-3.5 text-[#FBBF24] fill-[#FBBF24] animate-pulse" />
-              <span className="text-[11px] font-bold uppercase tracking-[0.22em] text-[#D4A0B0]">
-                Limited Time Flash Promotion · 24H Exclusive
-              </span>
+  const Badge = (
+    <div className={s.badge}>
+      <Zap className={s.badgeIcon} />
+      <span>Limited Time Flash Promotion · 24H Exclusive</span>
+    </div>
+  );
+
+  const Timer = (
+    <div className={s.timer} aria-label="Offer ends in">
+      {units.map((u, i) => (
+        <React.Fragment key={u.label}>
+          {i > 0 && <span className={s.sep} />}
+          <div className={s.unit}>
+            <Clock className={s.unitIcon} />
+            <div className={s.unitText}>
+              <span className={`${s.unitNum} font-mono`}>{pad(u.value)}</span>
+              <span className={s.unitLabel}>{u.label}</span>
             </div>
+          </div>
+        </React.Fragment>
+      ))}
+    </div>
+  );
 
-            {/* Editorial Headline */}
-            <h2 className="font-serif text-3xl sm:text-5xl lg:text-[52px] leading-[1.1] font-normal tracking-tight text-[#FDF6F4]">
-              Unlock <span className="italic font-normal text-[#D4A0B0]">Extra 15% Off</span> <br className="hidden sm:inline" />
+  const Code = (
+    <div className={s.code}>
+      <Tag className={s.codeIcon} />
+      <span className={s.codeLabel}>Code:</span>
+      <span className={`${s.codeValue} font-mono`}>GLOW15</span>
+      <button onClick={handleCopy} className={s.copyBtn} title="Copy coupon code">
+        {copied ? <Check /> : <Copy />}
+        <span>{copied ? "Copied!" : "Copy"}</span>
+      </button>
+    </div>
+  );
+
+  return (
+    <section
+      aria-label="Flash sale: extra 15% off with code GLOW15"
+      className="py-2 sm:py-4 px-3 sm:px-6 lg:px-8"
+    >
+      <div className="max-w-7xl mx-auto">
+        {/* ================= DESKTOP RIBBON ================= */}
+        <div className={`${s.frame} ${s.desktop}`}>
+          <Image
+            src="/images/flash-ribbon-desktop.png"
+            alt="Azyleen glass skin model wrapped in a plum satin ribbon"
+            fill
+            sizes="(min-width: 1280px) 1280px, 100vw"
+            className={s.art}
+            priority
+          />
+
+          {/* Brand mark on left ribbon flag */}
+          <div className={s.brand}>
+            <BrandFlower className={s.brandIcon} />
+            <span className={`${s.brandName} font-serif`}>Azyleen</span>
+            <span className={s.brandTag}>Korean Skin Care</span>
+          </div>
+
+          {/* Main copy on the ribbon */}
+          <div className={s.overlay}>
+            {Badge}
+            <h2 className={`${s.headline} font-serif`}>
+              Unlock <span className={s.accent}>Extra 15% Off</span>
+              <br />
               Your Entire Seoul Ritual
             </h2>
-
-            {/* Editorial Description */}
-            <p className="text-sm sm:text-base text-[#FDF6F4]/80 font-normal max-w-xl mx-auto lg:mx-0 leading-relaxed">
-              Curated actives formulated to treat stubborn hyperpigmentation, soothe sensitivity, and hydrate deep within South Asian climates. Use code at checkout or apply directly to your bag.
+            <p className={s.desc}>
+              Curated actives formulated to treat stubborn hyperpigmentation, soothe sensitivity, and
+              hydrate deep within South Asian climates. Use code at checkout or apply directly to your bag.
             </p>
-
-            {/* Luxury Countdown Timer Grid */}
-            <div className="pt-2 flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4">
-              <div className="flex items-center gap-2.5">
-                {/* Hours Box */}
-                <div className="flex flex-col items-center justify-center w-16 sm:w-20 py-2.5 rounded-2xl bg-black/40 backdrop-blur-md border border-[#D4A0B0]/30 shadow-inner">
-                  <span className="font-mono text-2xl sm:text-3xl font-bold text-white tracking-wider">
-                    {String(timeLeft.hours).padStart(2, "0")}
-                  </span>
-                  <span className="text-[9.5px] uppercase tracking-widest text-[#D4A0B0] font-semibold mt-0.5">
-                    Hours
-                  </span>
-                </div>
-                <span className="text-2xl font-bold text-[#D4A0B0] -mt-3 animate-pulse">:</span>
-
-                {/* Minutes Box */}
-                <div className="flex flex-col items-center justify-center w-16 sm:w-20 py-2.5 rounded-2xl bg-black/40 backdrop-blur-md border border-[#D4A0B0]/30 shadow-inner">
-                  <span className="font-mono text-2xl sm:text-3xl font-bold text-white tracking-wider">
-                    {String(timeLeft.minutes).padStart(2, "0")}
-                  </span>
-                  <span className="text-[9.5px] uppercase tracking-widest text-[#D4A0B0] font-semibold mt-0.5">
-                    Mins
-                  </span>
-                </div>
-                <span className="text-2xl font-bold text-[#D4A0B0] -mt-3 animate-pulse">:</span>
-
-                {/* Seconds Box */}
-                <div className="flex flex-col items-center justify-center w-16 sm:w-20 py-2.5 rounded-2xl bg-black/40 backdrop-blur-md border border-[#D4A0B0]/30 shadow-inner">
-                  <span className="font-mono text-2xl sm:text-3xl font-bold text-[#D4A0B0] tracking-wider">
-                    {String(timeLeft.seconds).padStart(2, "0")}
-                  </span>
-                  <span className="text-[9.5px] uppercase tracking-widest text-[#D4A0B0] font-semibold mt-0.5">
-                    Secs
-                  </span>
-                </div>
-              </div>
-
-              {/* Coupon Box with Copy Action */}
-              <div className="flex items-center gap-2 bg-black/45 backdrop-blur-md p-1.5 pl-3.5 rounded-2xl border border-[#D4A0B0]/40 shadow-sm">
-                <div className="flex items-center gap-1.5 font-mono">
-                  <Tag className="w-3.5 h-3.5 text-[#D4A0B0]" />
-                  <span className="text-xs text-[#FDF6F4]/60 uppercase">Code:</span>
-                  <span className="font-bold text-white text-sm tracking-widest px-1">
-                    GLOW15
-                  </span>
-                </div>
-                <button
-                  onClick={handleCopy}
-                  className="px-3.5 py-2 rounded-xl bg-[#D4A0B0] hover:bg-white text-[#5C3544] font-bold text-xs uppercase tracking-wider transition-all duration-300 flex items-center gap-1.5 cursor-pointer shadow-md transform hover:scale-105"
-                  title="Copy coupon code"
-                >
-                  {copied ? (
-                    <>
-                      <Check className="w-3.5 h-3.5 text-[#1A7A4A]" />
-                      <span>Copied!</span>
-                    </>
-                  ) : (
-                    <>
-                      <Copy className="w-3.5 h-3.5" />
-                      <span>Copy</span>
-                    </>
-                  )}
-                </button>
-              </div>
+            <div className={s.row}>
+              {Timer}
+              {Code}
             </div>
-
-            {/* Action Buttons & Trust Highlights */}
-            <div className="pt-2 flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4">
-              <a
-                href="#products"
-                className="w-full sm:w-auto bg-white hover:bg-[#FDF6F4] text-[#5C3544] font-bold text-xs uppercase tracking-widest px-8 py-4 rounded-full shadow-xl transition-all duration-300 transform hover:-translate-y-0.5 flex items-center justify-center gap-3 cursor-pointer"
-              >
+            <div className={s.actions}>
+              <a href="#products" className={s.btnPrimary}>
                 <span>Shop Flash Sale</span>
-                <ArrowRight className="w-4 h-4 text-[#BA788C]" />
+                <ArrowRight />
               </a>
-
-              <button
-                onClick={openCart}
-                className="w-full sm:w-auto bg-transparent hover:bg-white/10 text-white font-bold text-xs uppercase tracking-widest px-6 py-4 rounded-full border border-white/30 transition-all duration-300 flex items-center justify-center gap-2 cursor-pointer"
-              >
-                <Sparkles className="w-4 h-4 text-[#D4A0B0]" />
+              <button onClick={openCart} className={s.btnGhost}>
+                <Sparkles />
                 <span>Apply To Glow Bag</span>
               </button>
             </div>
           </div>
 
-          {/* Right Column: Editorial Radiant Beauty Model & Silk Abstract Layers */}
-          <div className="lg:col-span-5 relative flex items-center justify-center">
-            <div className="relative w-full max-w-md aspect-[4/5] sm:aspect-[4/4.5] rounded-[32px] overflow-hidden border-2 border-white/30 shadow-2xl group">
-              {/* Background Model Image with Silk Veil */}
-              <Image
-                src="/images/promo-beauty-banner.jpg"
-                alt="Azyleen Korean Glass Skin Beauty Campaign"
-                fill
-                className="object-cover object-top group-hover:scale-105 transition-transform duration-700 ease-out"
-                sizes="(max-width: 768px) 100vw, 450px"
-                priority
-              />
+          {/* Right ribbon editorial note */}
+          <div className={s.note}>
+            <p className={`${s.noteText} font-serif`}>
+              Real, luminous <br />
+              glass skin results.
+            </p>
+            <div className={s.noteSub}>
+              <ShieldCheck />
+              <span>100% Original Sealed Batch Codes</span>
+            </div>
+          </div>
+        </div>
 
-              {/* Gradient Vignette Overlays for Depth */}
-              <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-black/20" />
-              <div className="absolute inset-0 bg-gradient-to-r from-[#3D1E2B]/50 via-transparent to-transparent hidden lg:block" />
+        {/* ================= MOBILE RIBBON ================= */}
+        <div className={`${s.frame} ${s.mobile}`}>
+          <Image
+            src="/images/flash-ribbon-mobile.png"
+            alt="Azyleen glass skin model above a plum satin ribbon"
+            fill
+            sizes="100vw"
+            className={s.art}
+            priority
+          />
 
-              {/* Top Floating Badge */}
-              <div className="absolute top-4 left-4 bg-black/45 backdrop-blur-md px-3.5 py-1.5 rounded-full border border-white/20 shadow-md flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-[#1A7A4A] animate-ping" />
-                <span className="text-[10px] font-bold uppercase tracking-wider text-white">
-                  Seoul Direct Import
-                </span>
-              </div>
+          <div className={s.brand}>
+            <div className={s.brandInner}>
+              <BrandFlower className={s.brandIcon} />
+              <span className={`${s.brandName} font-serif`}>Azyleen</span>
+            </div>
+          </div>
 
-              {/* Top-Right Discount Badge */}
-              <div className="absolute top-4 right-4 bg-[#D93025] text-white px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider shadow-lg flex items-center gap-1">
-                <span>15% OFF</span>
-              </div>
-
-              {/* Bottom Editorial Caption on Model */}
-              <div className="absolute bottom-5 inset-x-5 text-white space-y-1">
-                <p className="text-[10.5px] font-bold uppercase tracking-[0.2em] text-[#D4A0B0]">
-                  Targeted For South Asian Complexions
-                </p>
-                <h4 className="font-serif text-xl sm:text-2xl font-normal leading-snug">
-                  Real, luminous glass skin results.
-                </h4>
-                <div className="flex items-center gap-2 pt-1 text-[11px] text-white/80 font-medium">
-                  <ShieldCheck className="w-3.5 h-3.5 text-[#D4A0B0]" />
-                  <span>100% Original Sealed Batch Codes</span>
-                </div>
-              </div>
+          <div className={s.overlay}>
+            {Badge}
+            <h2 className={`${s.headline} font-serif`}>
+              <span className={s.headlineSmall} style={{ marginTop: 0 }}>Unlock</span>
+              <span className={`${s.headlineBig} ${s.accent}`}>Extra 15% Off</span>
+              <span className={s.headlineSmall}>Your Entire Seoul Ritual</span>
+            </h2>
+            <p className={s.desc}>
+              Curated actives for hyperpigmentation, sensitivity &amp; deep hydration.
+            </p>
+            <div className={s.row}>
+              {Timer}
+              {Code}
+            </div>
+            <div className={s.actions}>
+              <a href="#products" className={s.btnPrimary}>
+                <span>Shop Sale</span>
+                <ArrowRight />
+              </a>
+              <button onClick={openCart} className={s.btnGhost}>
+                <Sparkles />
+                <span>Glow Bag</span>
+              </button>
             </div>
           </div>
         </div>

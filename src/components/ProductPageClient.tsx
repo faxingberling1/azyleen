@@ -26,8 +26,9 @@ import {
   Flame,
 } from "lucide-react";
 import { ShopifyProduct } from "@/lib/shopify";
-import { useCart } from "@/context/CartContext";
+import { useCart, isGiftProduct } from "@/context/CartContext";
 import { useWishlist } from "@/context/WishlistContext";
+import GiftBoxDecisionModal from "@/components/GiftBoxDecisionModal";
 
 interface ProductPageClientProps {
   product: ShopifyProduct;
@@ -35,8 +36,9 @@ interface ProductPageClientProps {
 }
 
 export default function ProductPageClient({ product, relatedProducts }: ProductPageClientProps) {
-  const { addToCart, openCart } = useCart();
+  const { addToCart, openCart, openConfigModal } = useCart();
   const { isInWishlist, toggleWishlist } = useWishlist();
+  const [isGiftDecisionOpen, setIsGiftDecisionOpen] = useState(false);
 
   // Gallery state
   const images = product.images.length > 0 ? product.images : [{ url: "", altText: product.title }];
@@ -161,7 +163,23 @@ export default function ProductPageClient({ product, relatedProducts }: ProductP
       : product;
     addToCart(productToAdd, 1);
     if (includeUpsell && upsellProduct) {
-      addToCart(upsellProduct, 1);
+      if (isGiftProduct(upsellProduct)) {
+        setIsGiftDecisionOpen(true);
+      } else {
+        addToCart(upsellProduct, 1);
+      }
+    }
+  };
+
+  const handleConfigureGiftNow = () => {
+    setIsGiftDecisionOpen(false);
+    window.location.href = "/gift-vouchers";
+  };
+
+  const handleContinueShoppingGift = () => {
+    setIsGiftDecisionOpen(false);
+    if (upsellProduct) {
+      addToCart(upsellProduct, 1, undefined, { needsConfiguration: true });
     }
   };
 
@@ -889,6 +907,17 @@ export default function ProductPageClient({ product, relatedProducts }: ProductP
             </div>
           </div>
         </div>
+      )}
+
+      {upsellProduct && (
+        <GiftBoxDecisionModal
+          isOpen={isGiftDecisionOpen}
+          onClose={handleContinueShoppingGift}
+          mainProduct={product}
+          giftProduct={upsellProduct}
+          onConfigureNow={handleConfigureGiftNow}
+          onContinueShopping={handleContinueShoppingGift}
+        />
       )}
     </div>
   );

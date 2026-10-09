@@ -4,8 +4,8 @@ import React, { useEffect, useState, useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import confetti from "canvas-confetti";
-import { useCart } from "@/context/CartContext";
-import { X, Plus, Minus, Trash2, ShoppingBag, ArrowRight, MessageCircle, ShieldCheck, Truck, Sparkles } from "lucide-react";
+import { useCart, isGiftProduct } from "@/context/CartContext";
+import { X, Plus, Minus, Trash2, ShoppingBag, ArrowRight, MessageCircle, ShieldCheck, Truck, Sparkles, Gift, AlertCircle } from "lucide-react";
 
 export default function CartDrawer() {
   const {
@@ -18,6 +18,10 @@ export default function CartDrawer() {
     freeShippingThreshold,
     freeShippingRemaining,
     totalItems,
+    hasUnconfiguredGifts,
+    unconfiguredGiftItems,
+    openConfigModal,
+    markGiftBoxBlank,
   } = useCart();
 
   const [isCheckingOut, setIsCheckingOut] = useState(false);
@@ -42,27 +46,37 @@ export default function CartDrawer() {
     wasFreeShippingRef.current = isFreeShipping;
   }, [isOpen, isFreeShipping]);
 
-  const handleCheckout = async () => {
+  const [showCheckoutWarning, setShowCheckoutWarning] = useState(false);
+  const [pendingCheckoutAction, setPendingCheckoutAction] = useState<"shopify" | "whatsapp" | null>(null);
+
+  const proceedWithCheckout = () => {
     if (cart.length === 0) return;
-    setIsCheckingOut(true);
+    closeCart();
     try {
-      const res = await fetch("/api/shopify/checkout", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ items: cart }),
-      });
-      const data = await res.json();
-      if (data.checkoutUrl) {
-        window.location.href = data.checkoutUrl;
-        return;
-      }
-    } catch (err) {
-      console.error("Checkout redirect error:", err);
-      // Fallback: Use demo store cart
-      window.location.href = "https://azyleen-demo.myshopify.com/cart";
-    } finally {
-      setIsCheckingOut(false);
+      localStorage.setItem(
+        "azyleen_cart_discounts",
+        JSON.stringify({
+          discountApplied,
+          discountAmount,
+          voucherApplied,
+          voucherCodeApplied,
+          voucherAmount,
+        })
+      );
+    } catch (e) {
+      console.warn("Could not save discounts", e);
     }
+    window.location.href = "/checkout";
+  };
+
+  const handleCheckout = () => {
+    if (cart.length === 0) return;
+    if (hasUnconfiguredGifts) {
+      setPendingCheckoutAction("shopify");
+      setShowCheckoutWarning(true);
+      return;
+    }
+    proceedWithCheckout();
   };
 
   const [promoCode, setPromoCode] = useState("");
@@ -108,11 +122,16 @@ export default function CartDrawer() {
   const shippingCost = subtotal >= freeShippingThreshold || subtotal === 0 ? 0 : 250;
   const progressPercent = Math.min(100, (subtotal / freeShippingThreshold) * 100);
 
-  // Generate WhatsApp Order Message
-  const handleWhatsAppOrder = () => {
+  const proceedWithWhatsAppOrder = () => {
     if (cart.length === 0) return;
     const itemList = cart
-      .map((item) => `• ${item.product.title} (x${item.quantity}) - Rs. ${(item.product.price * item.quantity).toLocaleString()}`)
+      .map((item) => {
+        let titleStr = `• ${item.product.title} (x${item.quantity}) - Rs. ${(item.product.price * item.quantity).toLocaleString()}`;
+        if (item.giftBoxConfig) {
+          titleStr += `%0A   [To: ${item.giftBoxConfig.recipientName} | From: ${item.giftBoxConfig.senderName} | Occasion: ${item.giftBoxConfig.occasion}]`;
+        }
+        return titleStr;
+      })
       .join("%0A");
 
     const message = `Salam Azyleen team! I would like to place an order via Cash on Delivery:%0A%0A${itemList}%0A%0A*Subtotal:* Rs. ${subtotal.toLocaleString()}%0A*Shipping:* ${
@@ -120,6 +139,16 @@ export default function CartDrawer() {
     }%0A*Estimated Total:* Rs. ${(finalTotal + shippingCost).toLocaleString()}%0A%0APlease confirm my order. Thank you!`;
 
     window.open(`https://wa.me/923252867992?text=${message}`, "_blank");
+  };
+
+  const handleWhatsAppOrder = () => {
+    if (cart.length === 0) return;
+    if (hasUnconfiguredGifts) {
+      setPendingCheckoutAction("whatsapp");
+      setShowCheckoutWarning(true);
+      return;
+    }
+    proceedWithWhatsAppOrder();
   };
 
   if (!isOpen) return null;
@@ -195,6 +224,57 @@ export default function CartDrawer() {
           </div>
         )}
 
+        {/* Unconfigured Gift Box Top Reminder Banner */}
+        {hasUnconfiguredGifts && cart.length > 0 && (
+          <div className="mx-6 mt-4 p-4 rounded-2xl bg-gradient-to-r from-[#FFF5F2] via-[#FDF0EC] to-[#FCEAE5] border border-[#E9A7B3] shadow-sm relative overflow-hidden">
+            <div className="flex items-start gap-3">
+              <div className="p-2 rounded-xl bg-[#5C3544] text-[#FDF6F4] flex-shrink-0 shadow-2xs">
+                <Gift className="w-4 h-4 text-[#D4A0B0]" />
+              </div>
+              <div className="flex-grow min-w-0">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-[#BA788C]">
+                    Action Required
+                  </span>
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#E57373] animate-ping" />
+                </div>
+                <h4 className="text-xs font-bold text-[#5C3544] mt-0.5">
+                  Personalize Keepsake Gift Box
+                </h4>
+                <p className="text-[11px] text-[#7E636E] mt-0.5 leading-snug">
+                  Add recipient names and your handwritten card message before checking out.
+                </p>
+                <div className="mt-2.5 flex items-center gap-2">
+                  <button
+                    onClick={() => {
+                      if (unconfiguredGiftItems[0]) {
+                        openConfigModal(
+                          unconfiguredGiftItems[0].product,
+                          unconfiguredGiftItems[0].giftBoxConfig
+                        );
+                      }
+                    }}
+                    className="px-3.5 py-1.5 rounded-full bg-[#5C3544] hover:bg-[#43232F] text-white text-[11px] font-bold uppercase tracking-wider flex items-center gap-1.5 shadow-2xs cursor-pointer transition-colors"
+                  >
+                    <Sparkles className="w-3 h-3 text-[#C59B6D]" />
+                    <span>Customize in Studio</span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (unconfiguredGiftItems[0]) {
+                        markGiftBoxBlank(unconfiguredGiftItems[0].product.id);
+                      }
+                    }}
+                    className="px-2.5 py-1.5 text-[10px] text-[#7E636E] hover:text-[#5C3544] cursor-pointer"
+                  >
+                    Leave blank
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Cart Item List */}
         <div className="flex-grow overflow-y-auto px-6 py-4 space-y-4">
           {cart.length === 0 ? (
@@ -218,10 +298,15 @@ export default function CartDrawer() {
           ) : (
             cart.map((item) => {
               const imgUrl = item.product.images?.[0]?.url;
+              const isGift = isGiftProduct(item.product);
+              const needsConfig = item.needsConfiguration || (isGift && !item.giftBoxConfig);
+
               return (
                 <div
                   key={item.product.id}
-                  className="flex gap-4 p-3.5 bg-white/80 rounded-2xl border border-[#D4A0B0]/20 shadow-sm transition-all hover:shadow-md"
+                  className={`flex gap-4 p-3.5 bg-white/80 rounded-2xl border shadow-sm transition-all hover:shadow-md ${
+                    needsConfig ? "border-[#F8B4B4] bg-[#FFFDFC]" : "border-[#D4A0B0]/20"
+                  }`}
                 >
                   {/* Clickable Product Thumbnail */}
                   <Link
@@ -268,13 +353,59 @@ export default function CartDrawer() {
                       >
                         {item.product.title}
                       </Link>
-                      <Link
-                        href={`/products/${item.product.handle}`}
-                        onClick={closeCart}
-                        className="text-[10px] text-[#7A4F5C] hover:underline font-medium inline-block mt-0.5"
-                      >
-                        View details →
-                      </Link>
+                      
+                      {/* Gift Box Personalization Info or Warning */}
+                      {isGift && needsConfig && (
+                        <div className="mt-2 p-2 rounded-xl bg-[#FFF2F0] border border-[#F8B4B4] text-[10px]">
+                          <div className="flex items-center justify-between gap-1">
+                            <span className="font-bold text-[#9E2A2B] flex items-center gap-1">
+                              <span>⚠️</span> Needs Personalization
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                closeCart();
+                                openConfigModal(item.product, item.giftBoxConfig);
+                              }}
+                              className="font-bold text-[#5C3544] hover:underline cursor-pointer flex items-center gap-0.5"
+                            >
+                              <span>Customize in Studio</span>
+                              <span>→</span>
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
+                      {isGift && !needsConfig && item.giftBoxConfig && (
+                        <div className="mt-2 p-2 rounded-xl bg-[#FDF6F4] border border-[#D4A0B0]/40 text-[10px]">
+                          <div className="flex items-center justify-between">
+                            <span className="font-semibold text-[#1A7A4A] flex items-center gap-1">
+                              <Sparkles className="w-3 h-3 text-[#C59B6D]" />
+                              <span>To: {item.giftBoxConfig.recipientName}</span>
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => openConfigModal(item.product, item.giftBoxConfig)}
+                              className="text-[9.5px] font-semibold text-[#7A4F5C] hover:underline cursor-pointer"
+                            >
+                              Edit Note
+                            </button>
+                          </div>
+                          <div className="text-[9px] text-[#7E636E] mt-0.5 truncate">
+                            From {item.giftBoxConfig.senderName} • {item.giftBoxConfig.occasion}
+                          </div>
+                        </div>
+                      )}
+
+                      {!isGift && (
+                        <Link
+                          href={`/products/${item.product.handle}`}
+                          onClick={closeCart}
+                          className="text-[10px] text-[#7A4F5C] hover:underline font-medium inline-block mt-0.5"
+                        >
+                          View details →
+                        </Link>
+                      )}
                     </div>
 
                     <div className="flex items-center justify-between mt-2">
@@ -363,20 +494,30 @@ export default function CartDrawer() {
             <div className="space-y-2 pt-1">
               <button
                 onClick={handleCheckout}
-                disabled={isCheckingOut}
-                className="w-full bg-[#5C3544] hover:bg-[#43232F] text-white py-3.5 rounded-full text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer shadow-lg hover:shadow-xl transition-all disabled:opacity-75"
+                className="w-full bg-[#5C3544] hover:bg-[#43232F] text-white py-3.5 rounded-full text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer shadow-lg hover:shadow-xl transition-all"
               >
-                <span>{isCheckingOut ? "Connecting to Shopify Checkout..." : "Proceed to Checkout"}</span>
+                <span>Proceed to Checkout</span>
                 <ArrowRight className="w-4 h-4" />
               </button>
 
-              <button
-                onClick={handleWhatsAppOrder}
-                className="w-full py-2.5 rounded-full text-xs font-semibold text-[#128C7E] bg-[#E7F6F2] hover:bg-[#D5EFE8] border border-[#128C7E]/20 flex items-center justify-center gap-2 transition-colors cursor-pointer"
-              >
-                <MessageCircle className="w-4 h-4 fill-[#128C7E]/20" />
-                <span>Order via WhatsApp (Instant COD)</span>
-              </button>
+              <div className="flex items-center gap-2">
+                <Link
+                  href="/cart"
+                  onClick={closeCart}
+                  className="flex-1 py-2.5 rounded-full text-[11px] font-bold uppercase tracking-wider text-[#5C3544] hover:bg-[#F9EEF1] border border-[#D4A0B0]/40 flex items-center justify-center gap-1.5 transition-colors cursor-pointer text-center"
+                >
+                  <ShoppingBag className="w-3.5 h-3.5 text-[#BA788C]" />
+                  <span>View Full Bag</span>
+                </Link>
+
+                <button
+                  onClick={handleWhatsAppOrder}
+                  className="flex-1 py-2.5 rounded-full text-[11px] font-bold text-[#128C7E] bg-[#E7F6F2] hover:bg-[#D5EFE8] border border-[#128C7E]/20 flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                >
+                  <MessageCircle className="w-3.5 h-3.5 fill-[#128C7E]/20" />
+                  <span>WhatsApp COD</span>
+                </button>
+              </div>
             </div>
 
             {/* Trust badge */}
@@ -387,6 +528,77 @@ export default function CartDrawer() {
               </span>
               <span>•</span>
               <span>Cash on Delivery</span>
+            </div>
+          </div>
+        )}
+
+        {/* Checkout Guard Dialog Modal */}
+        {showCheckoutWarning && (
+          <div className="absolute inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-6 animate-fade-in">
+            <div className="bg-[#FDF6F4] border border-[#D4A0B0]/40 rounded-3xl p-6 shadow-2xl max-w-sm w-full text-center space-y-4 animate-scale-up">
+              <div className="w-12 h-12 rounded-full bg-[#F9EEF1] border border-[#D4A0B0]/30 flex items-center justify-center mx-auto text-[#5C3544]">
+                <Gift className="w-6 h-6 text-[#BA788C]" />
+              </div>
+
+              <div>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-[#BA788C]">
+                  Personalization Reminder
+                </span>
+                <h3 className="font-serif text-xl font-medium text-[#5C3544] mt-1">
+                  Configure Your Gift Box
+                </h3>
+                <p className="text-xs text-[#7E636E] mt-1.5 leading-relaxed">
+                  Your luxury keepsake box includes a handwritten card and custom packaging details that have not been personalized yet.
+                </p>
+              </div>
+
+              <div className="space-y-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowCheckoutWarning(false);
+                    closeCart();
+                    if (unconfiguredGiftItems[0]) {
+                      openConfigModal(
+                        unconfiguredGiftItems[0].product,
+                        unconfiguredGiftItems[0].giftBoxConfig
+                      );
+                    } else {
+                      window.location.href = "/gift-vouchers";
+                    }
+                  }}
+                  className="w-full py-3 px-4 rounded-xl bg-[#5C3544] hover:bg-[#43232F] text-white text-xs font-bold uppercase tracking-wider shadow-md transition-all cursor-pointer flex items-center justify-center gap-1.5"
+                >
+                  <Sparkles className="w-3.5 h-3.5 text-[#C59B6D]" />
+                  <span>Customize in Gifting Studio</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (unconfiguredGiftItems[0]) {
+                      markGiftBoxBlank(unconfiguredGiftItems[0].product.id);
+                    }
+                    setShowCheckoutWarning(false);
+                    if (pendingCheckoutAction === "shopify") {
+                      proceedWithCheckout();
+                    } else if (pendingCheckoutAction === "whatsapp") {
+                      proceedWithWhatsAppOrder();
+                    }
+                  }}
+                  className="w-full py-2.5 px-4 rounded-xl bg-white hover:bg-[#F9EEF1] border border-[#D4A0B0]/40 text-[#5C3544] text-xs font-medium transition-colors cursor-pointer"
+                >
+                  Proceed with Blank Gift Box
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setShowCheckoutWarning(false)}
+                  className="text-[11px] text-[#7E636E] hover:text-[#5C3544] block mx-auto pt-1 cursor-pointer"
+                >
+                  Return to bag
+                </button>
+              </div>
             </div>
           </div>
         )}

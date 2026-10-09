@@ -491,7 +491,10 @@ export async function getShopifyProducts(): Promise<ShopifyProduct[]> {
         productType: node.productType || detectedCategory || "Skincare",
         vendor: detectedVendor,
         tags: node.tags || [],
-        availableForSale: Boolean(node.availableForSale),
+        availableForSale:
+          node.handle === "gift-card" || node.handle?.includes("gift") || node.handle?.includes("voucher")
+            ? true
+            : Boolean(node.availableForSale),
         price,
         compareAtPrice: comparePrice && comparePrice > price ? comparePrice : null,
         currency: node.priceRange.minVariantPrice.currencyCode || "PKR",
@@ -503,7 +506,13 @@ export async function getShopifyProducts(): Promise<ShopifyProduct[]> {
           return imgs;
         })(),
         variants: node.variants.edges
-          .map((e) => e.node)
+          .map((e) => ({
+            ...e.node,
+            availableForSale:
+              node.handle === "gift-card" || node.handle?.includes("gift") || node.handle?.includes("voucher")
+                ? true
+                : Boolean(e.node.availableForSale),
+          }))
           .filter((v) => !v.title.includes("$")),
         rating: meta.rating || 4.9,
         reviewsCount: meta.reviewsCount || 42,

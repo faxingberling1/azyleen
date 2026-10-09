@@ -1,0 +1,273 @@
+/*
+ * Ribbon Flash Sale Banner
+ * Every overlay size is expressed in container-query width units (cqw) so the
+ * banner scales exactly like a single image — text, timer and buttons always
+ * stay locked to the ribbon artwork at any screen width or browser zoom level.
+ */
+
+.fsb-frame {
+  position: relative;
+  width: 100%;
+  container-type: inline-size;
+  overflow: hidden;
+  user-select: none;
+}
+
+.fsb-desktop {
+  aspect-ratio: 1376 / 520;
+  display: none;
+}
+
+.fsb-mobile {
+  aspect-ratio: 768 / 1376;
+  display: block;
+}
+
+@media (min-width: 1024px) {
+  .fsb-desktop { display: block; }
+  .fsb-mobile { display: none; }
+}
+
+.fsb-art {
+  object-fit: cover;
+  object-position: center;
+  pointer-events: none;
+  mask-image: radial-gradient(ellipse 96% 92% at 50% 50%, black 82%, transparent 100%);
+  -webkit-mask-image: radial-gradient(ellipse 96% 92% at 50% 50%, black 82%, transparent 100%);
+}
+
+/* ---------- Shared building blocks ---------- */
+
+.fsb-overlay {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  color: #2B141E;
+}
+
+.fsb-badge {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #5C3544, #7A4F5C 60%, #5C3544);
+  color: #FDF6F4;
+  font-weight: 700;
+  text-transform: uppercase;
+  white-space: nowrap;
+  box-shadow: 0 0.4cqw 1.2cqw rgba(92, 53, 68, 0.25);
+}
+
+.fsb-badgeIcon { color: #E9C48F; fill: #E9C48F; flex-shrink: 0; }
+
+.fsb-accent {
+  font-style: italic;
+  font-weight: 500;
+  background: linear-gradient(90deg, #7A4F5C, #BA788C 55%, #C59B6D);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.fsb-desc { color: rgba(92, 53, 68, 0.85); }
+
+.fsb-row { display: flex; align-items: center; }
+
+.fsb-timer {
+  display: inline-flex;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(212, 160, 176, 0.55);
+  border-radius: 999px;
+  backdrop-filter: blur(6px);
+}
+
+.fsb-unit { display: inline-flex; align-items: center; }
+.fsb-unitIcon { color: #BA788C; flex-shrink: 0; }
+.fsb-unitText { display: flex; flex-direction: column; line-height: 1; }
+.fsb-unitNum { font-weight: 700; color: #5C3544; font-variant-numeric: tabular-nums; }
+.fsb-unitLabel { text-transform: uppercase; font-weight: 700; color: #9C7A86; letter-spacing: 0.08em; }
+.fsb-sep { width: 1px; background: rgba(186, 120, 140, 0.35); align-self: stretch; }
+
+.fsb-code {
+  display: inline-flex;
+  align-items: center;
+  background: #FFFFFF;
+  border: 1px solid rgba(186, 120, 140, 0.5);
+  border-radius: 999px;
+  white-space: nowrap;
+}
+.fsb-codeLabel { color: #9C7A86; text-transform: uppercase; font-weight: 600; }
+.fsb-codeValue { color: #5C3544; font-weight: 800; letter-spacing: 0.06em; }
+
+.fsb-copyBtn {
+  display: inline-flex;
+  align-items: center;
+  border: 0;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #5C3544, #7A4F5C);
+  color: #FDF6F4;
+  font-weight: 700;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: transform 0.2s ease, filter 0.2s ease;
+}
+.fsb-copyBtn:hover { filter: brightness(1.15); transform: scale(1.04); }
+
+.fsb-btnPrimary,
+.fsb-btnGhost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  font-weight: 700;
+  text-transform: uppercase;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: transform 0.25s ease, box-shadow 0.25s ease, background 0.25s ease;
+}
+.fsb-btnPrimary {
+  background: linear-gradient(90deg, #3D1E2B, #5C3544 50%, #7A4F5C);
+  color: #FDF6F4;
+  border: 0;
+  box-shadow: 0 0.6cqw 1.6cqw rgba(61, 30, 43, 0.3);
+}
+.fsb-btnGhost {
+  background: rgba(255, 255, 255, 0.75);
+  color: #5C3544;
+  border: 1px solid rgba(186, 120, 140, 0.6);
+}
+.fsb-btnPrimary:hover,
+.fsb-btnGhost:hover { transform: translateY(-2px); }
+.fsb-btnGhost:hover { background: #FFFFFF; }
+
+/* Brand mark on the plum ribbon flag */
+.fsb-brand {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #FDF6F4;
+  text-align: center;
+  pointer-events: none;
+}
+.fsb-brandName {
+  font-style: italic;
+  font-weight: 600;
+  line-height: 1;
+  text-shadow: 0 0.2cqw 0.6cqw rgba(0, 0, 0, 0.35);
+}
+.fsb-brandTag { text-transform: uppercase; font-weight: 600; color: #E9C48F; white-space: nowrap; }
+
+/* =====================================================
+ * DESKTOP (artwork 1376 x 520 crop) — units relative to width
+ * ===================================================== */
+
+.fsb-desktop .fsb-brand { left: 7.2%; width: 13.4%; top: 50%; transform: translateY(-50%) rotate(-4deg); gap: 0.6cqw; }
+.fsb-desktop .fsb-brandIcon { width: 2.6cqw; height: 2.6cqw; }
+.fsb-desktop .fsb-brandName { font-size: 3.1cqw; }
+.fsb-desktop .fsb-brandTag { font-size: 0.62cqw; letter-spacing: 0.25em; }
+
+.fsb-desktop .fsb-overlay { left: 23%; width: 44%; top: 50%; transform: translateY(-50%); gap: 0.65cqw; }
+.fsb-desktop .fsb-badge { gap: 0.4cqw; padding: 0.35cqw 0.95cqw; font-size: 0.72cqw; letter-spacing: 0.16em; }
+.fsb-desktop .fsb-badgeIcon { width: 0.85cqw; height: 0.85cqw; }
+.fsb-desktop .fsb-headline { font-size: 2.85cqw; line-height: 1.06; font-weight: 700; letter-spacing: -0.01em; }
+.fsb-desktop .fsb-desc { font-size: 0.96cqw; line-height: 1.38; max-width: 40cqw; }
+.fsb-desktop .fsb-row { gap: 0.75cqw; margin-top: 0.1cqw; }
+.fsb-desktop .fsb-timer { gap: 0.75cqw; padding: 0.35cqw 0.95cqw; }
+.fsb-desktop .fsb-unit { gap: 0.35cqw; }
+.fsb-desktop .fsb-unitIcon { width: 1.1cqw; height: 1.1cqw; }
+.fsb-desktop .fsb-unitNum { font-size: 1.22cqw; }
+.fsb-desktop .fsb-unitLabel { font-size: 0.52cqw; margin-top: 0.12cqw; }
+.fsb-desktop .fsb-code { gap: 0.45cqw; padding: 0.25cqw 0.25cqw 0.25cqw 0.9cqw; font-size: 0.88cqw; }
+.fsb-desktop .fsb-codeIcon { width: 0.9cqw; height: 0.9cqw; color: #BA788C; }
+.fsb-desktop .fsb-codeLabel { font-size: 0.7cqw; }
+.fsb-desktop .fsb-copyBtn { gap: 0.3cqw; padding: 0.42cqw 0.8cqw; font-size: 0.68cqw; }
+.fsb-desktop .fsb-copyBtn svg { width: 0.78cqw; height: 0.78cqw; }
+.fsb-desktop .fsb-actions { display: flex; gap: 0.8cqw; margin-top: 0.25cqw; }
+.fsb-desktop .fsb-btnPrimary,
+.fsb-desktop .fsb-btnGhost { gap: 0.5cqw; padding: 0.72cqw 1.8cqw; font-size: 0.75cqw; letter-spacing: 0.14em; }
+.fsb-desktop .fsb-btnPrimary svg,
+.fsb-desktop .fsb-btnGhost svg { width: 0.95cqw; height: 0.95cqw; }
+
+.fsb-desktop .fsb-note {
+  position: absolute;
+  left: 83.5%;
+  top: 2.5%;
+  width: 14%;
+  transform: rotate(-3deg);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  pointer-events: none;
+  z-index: 2;
+}
+.fsb-desktop .fsb-noteText {
+  font-style: italic;
+  font-family: var(--font-serif, "Playfair Display", Georgia, serif);
+  font-size: 1.32cqw;
+  font-weight: 600;
+  line-height: 1.2;
+  color: #5C3544;
+  letter-spacing: -0.01em;
+}
+.fsb-desktop .fsb-noteSub {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35cqw;
+  margin-top: 0.55cqw;
+  padding: 0.25cqw 0.75cqw;
+  border: 1px solid rgba(186, 120, 140, 0.55);
+  border-radius: 999px;
+  background: rgba(253, 246, 244, 0.65);
+  font-size: 0.6cqw;
+  font-weight: 700;
+  line-height: 1.2;
+  color: #7A4F5C;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.fsb-desktop .fsb-noteSub svg {
+  width: 0.85cqw;
+  height: 0.85cqw;
+  flex-shrink: 0;
+  color: #BA788C;
+}
+
+/* =====================================================
+ * MOBILE (artwork 768 x 1376) — units relative to width
+ * ===================================================== */
+
+.fsb-mobile .fsb-brand { left: 0.5%; width: 14%; top: 39.5%; height: 20%; }
+.fsb-mobile .fsb-brandInner { transform: rotate(-90deg); display: flex; flex-direction: column; align-items: center; gap: 0.8cqw; }
+.fsb-mobile .fsb-brandIcon { width: 4.2cqw; height: 4.2cqw; }
+.fsb-mobile .fsb-brandName { font-size: 6.4cqw; }
+.fsb-mobile .fsb-brandTag { display: none; }
+
+.fsb-mobile .fsb-overlay { left: 17%; width: 64%; top: 44.5%; gap: 3cqw; }
+.fsb-mobile .fsb-badge { gap: 1.2cqw; padding: 1.2cqw 2.6cqw; font-size: 2.3cqw; letter-spacing: 0.12em; }
+.fsb-mobile .fsb-badgeIcon { width: 2.6cqw; height: 2.6cqw; }
+.fsb-mobile .fsb-headline { font-weight: 700; line-height: 1.05; }
+.fsb-mobile .fsb-headlineBig { display: block; font-size: 8.4cqw; }
+.fsb-mobile .fsb-headlineSmall { display: block; font-size: 5cqw; margin-top: 1cqw; }
+.fsb-mobile .fsb-desc { font-size: 3.3cqw; line-height: 1.45; }
+.fsb-mobile .fsb-row { flex-direction: column; align-items: flex-start; gap: 2.4cqw; }
+.fsb-mobile .fsb-timer { gap: 2.6cqw; padding: 1.6cqw 3.2cqw; }
+.fsb-mobile .fsb-unit { gap: 1.2cqw; }
+.fsb-mobile .fsb-unitIcon { width: 3.6cqw; height: 3.6cqw; }
+.fsb-mobile .fsb-unitNum { font-size: 4.4cqw; }
+.fsb-mobile .fsb-unitLabel { font-size: 1.8cqw; margin-top: 0.4cqw; }
+.fsb-mobile .fsb-code { gap: 1.6cqw; padding: 1cqw 1cqw 1cqw 3cqw; font-size: 3.2cqw; }
+.fsb-mobile .fsb-codeIcon { width: 3.2cqw; height: 3.2cqw; color: #BA788C; }
+.fsb-mobile .fsb-codeLabel { font-size: 2.5cqw; }
+.fsb-mobile .fsb-copyBtn { gap: 1cqw; padding: 1.6cqw 2.8cqw; font-size: 2.4cqw; }
+.fsb-mobile .fsb-copyBtn svg { width: 2.8cqw; height: 2.8cqw; }
+.fsb-mobile .fsb-actions { display: flex; gap: 2cqw; }
+.fsb-mobile .fsb-btnPrimary,
+.fsb-mobile .fsb-btnGhost { gap: 1.4cqw; padding: 2.8cqw 3.6cqw; font-size: 2.5cqw; letter-spacing: 0.1em; flex: 1; }
+.fsb-mobile .fsb-btnPrimary svg,
+.fsb-mobile .fsb-btnGhost svg { width: 3cqw; height: 3cqw; }
+
+.fsb-desktop .fsb-actions { display: flex; gap: 0.9cqw; }

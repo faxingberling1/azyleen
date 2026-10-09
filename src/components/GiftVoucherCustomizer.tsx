@@ -119,7 +119,17 @@ export default function GiftVoucherCustomizer() {
       reviewsCount: 128,
     };
 
-    addToCart(voucherProduct as any, 1);
+    addToCart(voucherProduct as any, 1, undefined, {
+      giftBoxConfig: {
+        recipientName: recipientName || "Valued Customer",
+        senderName: senderName || "A Friend",
+        occasion,
+        personalMessage,
+        deliveryType,
+        amount: finalAmount,
+      },
+      needsConfiguration: false,
+    });
     setTimeout(() => setIsAdding(false), 800);
   };
 
